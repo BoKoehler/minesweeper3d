@@ -1,8 +1,11 @@
-# Chondrite — design plan
+# Chondrite — design notes
 
 A fully 3D minesweeper for the web, rebuilt from the loop up.
 
-**Status:** design, not yet implemented. Nothing in this repo runs.
+**Status:** implemented and playable. See [`README.md`](README.md) to run it.
+
+Where this document originally carried estimates, it now carries measurements
+from the built game — `npx tsx scripts/measure.ts` reproduces every table.
 
 ---
 
@@ -50,7 +53,7 @@ So the whole pattern vocabulary is `0 / 1 / 2`. The 3D equivalent of the 2D
 exactly two shared cells. That's teachable in one tutorial beat and stays
 useful for the whole game.
 
-### Density has a hard floor
+### Density has a hard floor, and it is measurable
 
 Flood-fill spreads through zero-cells via face adjacency. Site percolation on
 the simple cubic lattice has a threshold around `p_c ≈ 0.3116`. If the fraction
@@ -64,13 +67,25 @@ Fraction of zero-cells at mine density `p` is `(1-p)^6`. Setting that equal to
 (1 - p)^6 = 0.3116   →   p ≈ 0.177
 ```
 
-**Mine density must stay above ~18%** or cascades run away. Convenient: that's
-the same neighbourhood as classic minesweeper (Expert is 20.6%). At `p = 0.20`
-the number distribution is `0: 26% · 1: 39% · 2: 25% · 3: 8%` — dominated by
-1s and 2s, exactly like the 2D game.
+That was the prediction. Measured on an 18³ lattice, sampling the largest
+pocket any single dig can open:
 
-(The threshold is for an infinite lattice; our hull is finite and irregular, so
-treat ~18% as a floor to verify by simulation, not a proof.)
+| Mine density | Zero-cells | Largest single-dig pocket |
+|---|---|---|
+| 8%  | 60.6% | **90.3%** of the rock |
+| 12% | 46.4% | **80.5%** |
+| 16% | 35.1% | **54.9%** |
+| 18% | 30.4% | 14.2% |
+| 20% | 26.2% | 7.7% |
+| 23% | 20.8% | 3.9% |
+| 25% | 17.8% | 2.2% |
+
+The knee sits exactly where the algebra put it. Between 16% and 18% the game
+stops being "one click clears the asteroid" and starts being a game.
+**Every shipped tier sits above 18%**, and a unit test enforces it.
+
+At `p = 0.20` the number distribution is `0: 26% · 1: 39% · 2: 25% · 3: 8%` —
+dominated by 1s and 2s, exactly like the 2D game.
 
 ## 3. The other five rules
 
@@ -126,26 +141,44 @@ That "my mistake opened a shortcut" moment is the thing to build toward.
 
 ## 5. Tuning
 
-Hulls are rough ellipsoids inscribed in the box, so cell count ≈ `(π/6)·n³`.
+Hulls are lumpy ellipsoids inscribed in the box. Cell counts below are measured
+from the shipped generator, not estimated.
 
-| Tier | Box | Hull cells | Density | Mines | Cores | Pings | Hull pts |
-|---|---|---|---|---|---|---|---|
-| Survey | 8³ | ~268 | 19% | 51 | 2 | 4 | 3 |
-| Prospect | 12³ | ~905 | 21% | 190 | 3 | 5 | 3 |
-| Deep Core | 16³ | ~2,145 | 23% | 493 | 4 | 6 | 3 |
-| Abyssal | 20³ | ~4,189 | 25% | 1,047 | 5 | 6 | 2 |
+| Tier | Box | Hull cells | Density | Mines | Cores | Pings | Hull pts | Chain |
+|---|---|---|---|---|---|---|---|---|
+| Survey | 8³ | 228 | 19% | 43 | 2 | 4 | 3 | 1 |
+| Prospect | 12³ | 779 | 21% | 164 | 3 | 5 | 3 | 2 |
+| Deep Core | 16³ | 1,844 | 23% | 424 | 4 | 6 | 3 | 2 |
+| Abyssal | 20³ | 3,606 | 25% | 902 | 5 | 6 | 2 | 2 |
 
 Every tier stays above the 18% floor. Charges regenerate at 1 per 40 cells
-cleared.
+cleared, and extracting a core pays 2. A hint costs 100 score, about twenty
+cells of digging.
 
 ## 6. The quality bar: no forced guesses
 
-Minesweeper is only fun when deduction is always available. This is the single
-highest-risk item in the project and it gets built before any rendering.
+Minesweeper is only fun when deduction is always available. This was the single
+highest-risk item in the project, and it was built before any rendering.
 
-**Generator loop.** Seeded RNG places mines and cores → the solver attempts a
-full solve using only rules a human has → if it hits a forced guess, perturb
-and retry → after N failures, reduce density and restart.
+**Generator loop.** Seeded RNG places mines and cores → the solver plays the
+board using only rules a human has → the candidate is scored by how many cores
+pure deduction reaches → best-of-K under a wall-clock budget, accepting the
+first board where deduction reaches every core.
+
+Measured over 8 seeds per tier:
+
+| Tier | Attempts to find a clean board | Guess-free | Generation |
+|---|---|---|---|
+| Survey | 15 | 8/8 | 8 ms |
+| Prospect | 23 | 8/8 | 29 ms |
+| Deep Core | 64 | 8/8 | 234 ms |
+| Abyssal | 86 | 7/8 | 686 ms |
+
+The search is cheap because the win condition is *reach the cores*, not *clear
+the board* — a far weaker requirement than full solvability, and the reason
+this works at all. When the budget expires without a clean board the best
+candidate ships, the UI says so on the opening toast, and the hint button
+(which runs the same solver live) covers the difference.
 
 **Solver rules** (in escalating cost order):
 1. **Trivial.** Count equals unknown neighbours → all mines. Count satisfied →
@@ -227,34 +260,53 @@ the only channel. Flags and cores differ in silhouette, not just hue. Full
 keyboard play: the cursor walks the exposed frontier cell by cell.
 `prefers-reduced-motion` disables camera shake and shortens dissolves.
 
-## 8. Build order
+## 8. What shipped, and what did not
 
-| # | Milestone | Done when |
-|---|---|---|
-| 0 | Scaffold | Vite + TS + Vitest, CI, Pages deploy of a spinning cube |
-| 1 | **Core, headless** | grid, RNG, generation, reveal, blast — no rendering, tests green |
-| 2 | **Solver + generator** | seeded runs are provably guess-free; the retry loop terminates |
-| 3 | Renderer | instanced voxels, DDA picking, orbit camera, hover highlight |
-| 4 | Readability | digits, billboarding, x-ray, peel, axis snap |
-| 5 | **Game layer** | cores, hull points, chain blasts, win/lose, sonar economy |
-| 6 | **Playtest gate** | play it. Is it fun? Tune density, blast radius, charges *before* juice |
-| 7 | Juice | shaders, dissolve, particles, shake, audio |
-| 8 | Meta | daily seed, share strings, stats, tutorial, mobile pass |
+Built: the headless core and solver with 34 unit tests, solver-scored
+generation, the instanced renderer with DDA picking, digits, peel, x-ray, axis
+snap, sonar, hull and chain detonations, hints, scoring, seeds, mobile input,
+and a browser smoke test that drives the real game in Chromium.
 
-Milestones 2 and 6 are the two places this project can quietly fail. 2 is
-technical and 6 is honest — if the loop isn't fun at 6, the fix is design, not
-more shaders.
+Deliberately not built yet:
 
-## 9. Risks
+- **Audio.** Nothing plays. The blast wants a sound more than it wants a better shader.
+- **Tutorial.** The menu explains the rules in four lines; there is no guided first rock.
+- **Daily challenge and score sharing.** Seeds are shareable by hand, but there is no daily seed or share string.
+- **Generation in a Worker.** It runs on the main thread behind a spinner, which is fine at 686 ms worst case and would not be if the tiers grew.
+- **The endgame escalation** from §10 below. Still unprototyped.
 
-| Risk | Severity | Mitigation |
-|---|---|---|
-| Solver can't guarantee guess-free boards at Abyssal size | high | Build it at M2, before rendering. Fall back to per-component enumeration with a smaller cap and accept a lower tier ceiling |
-| Interior state still unreadable despite peel/x-ray | high | Prototype readability at M4 with a throwaway scene before committing to the visual style |
-| Cascades percolate anyway on irregular hulls | medium | Simulate zero-cluster sizes across seeds at M1; raise the density floor empirically |
-| Digit rendering tanks framerate | medium | Atlas + instancing + exposed-face culling from the start; never `troika-three-text` per cell |
-| Scope creep in juice | medium | M7 is timeboxed and comes after the playtest gate |
-| The loop just isn't fun | high | That's what M6 is for, and it's early enough to change the design |
+### Two lessons from the build
+
+**Transparency does not survive a volume.** Revealed cells were first drawn as
+translucent boxes. Looking into a deep crater stacks a dozen of them along one
+view ray, and 15% opacity twelve times over is an opaque film across the whole
+rock. The fix was to draw nothing: the missing cube is the signal and the
+number on it is the information. Every source of transparent overdraw left the
+scene with it.
+
+**A fixed sun breaks when the camera does not.** The camera now opens facing
+the entry crater, which is at a random point on the hull — so with a
+world-space key light, roughly half of all runs opened entirely in shadow. The
+key light rides the camera; one fixed cool rim keeps the rock from reading flat.
+
+## 9. Risks, revisited
+
+| Risk | Where it landed |
+|---|---|
+| Solver can't guarantee guess-free boards at Abyssal size | **Mostly retired.** 8/8 clean on the first three tiers, 7/8 on Abyssal. The weak case is handled honestly rather than hidden: the opening toast says so, and the hint button runs the same solver live |
+| Cascades percolate on irregular hulls | **Retired.** Measured; the knee is where the algebra predicted and a test enforces the floor |
+| Digit rendering tanks framerate | **Retired.** 11 draw calls for the whole rock. Scene cost barely tracks cell count — 4.6× the cells costs about 20% more frame time |
+| Interior state unreadable despite peel/x-ray | **Open.** Peel, x-ray and axis snap all work, but this needs a real player, not a screenshot |
+| The loop isn't fun | **Open, and the only one that matters now.** Everything above is machine-checkable; this is not |
+
+### One number I could not verify here
+
+Frame rate. This build environment has no GPU, so Chromium falls back to
+SwiftShader and reports 12–17 fps at 1280×800. That figure measures software
+fill rate, not the game: frame time scales almost exactly with pixel count and
+barely at all with cell count (Prospect at 779 cells and Abyssal at 3,606 differ
+by ~20%). The instancing is doing its job. **Actual GPU performance is
+unmeasured** and wants a real machine.
 
 ## 10. Open calls
 
