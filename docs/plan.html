@@ -1,0 +1,527 @@
+<title>Chondrite</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#E4E7E7; --surface:#F7F8F8; --surface-2:#EDF0F0;
+  --line:#C6CDCE; --line-soft:#D8DEDE;
+  --ink:#151D21; --muted:#5A696F;
+  --ore:#B8440F; --sonar:#15707F; --core:#8C6B0C;
+  --ore-wash:rgba(184,68,15,.09); --sonar-wash:rgba(21,112,127,.09); --core-wash:rgba(140,107,12,.10);
+  --display:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --body:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1216; --surface:#141D22; --surface-2:#1B252B;
+    --line:#2B383F; --line-soft:#222E34;
+    --ink:#DEE5E8; --muted:#8DA0A8;
+    --ore:#EE7238; --sonar:#54C1D3; --core:#DFB53F;
+    --ore-wash:rgba(238,114,56,.13); --sonar-wash:rgba(84,193,211,.12); --core-wash:rgba(223,181,63,.13);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1216; --surface:#141D22; --surface-2:#1B252B;
+  --line:#2B383F; --line-soft:#222E34;
+  --ink:#DEE5E8; --muted:#8DA0A8;
+  --ore:#EE7238; --sonar:#54C1D3; --core:#DFB53F;
+  --ore-wash:rgba(238,114,56,.13); --sonar-wash:rgba(84,193,211,.12); --core-wash:rgba(223,181,63,.13);
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.62;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px 96px;display:grid;grid-template-columns:1fr;gap:0}
+@media (min-width:1020px){
+  .wrap{grid-template-columns:196px minmax(0,1fr);column-gap:56px;padding-right:40px}
+  .rail{grid-column:1;grid-row:2}
+  main{grid-column:2;grid-row:2}
+  .masthead{grid-column:1/-1}
+}
+
+/* masthead */
+.masthead{padding:52px 0 34px;border-bottom:2px solid var(--ink)}
+.stamp{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+  display:flex;flex-wrap:wrap;gap:6px 20px;margin-bottom:22px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(48px,8.5vw,88px);line-height:.94;margin:0;
+  letter-spacing:-.035em;text-wrap:balance}
+.sub{font-family:var(--display);font-weight:500;font-size:clamp(18px,2.4vw,23px);line-height:1.34;
+  margin:18px 0 0;max-width:30ch;letter-spacing:-.012em;color:var(--ink)}
+.dek{margin:16px 0 0;max-width:62ch;color:var(--muted);font-size:15.5px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+.chip{font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;padding:5px 11px;border:1px solid var(--line);
+  background:var(--surface);color:var(--muted);border-radius:2px}
+.chip b{color:var(--ink);font-weight:500}
+
+/* rail */
+.rail{padding-top:40px}
+@media (min-width:1020px){.rail nav{position:sticky;top:26px}}
+.rail ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:2px 18px;
+  border-left:0}
+@media (min-width:1020px){.rail ol{display:block;border-left:1px solid var(--line)}}
+.rail a{display:block;font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;padding:5px 0}
+@media (min-width:1020px){.rail a{padding:5px 0 5px 14px;border-left:2px solid transparent;margin-left:-1px}}
+.rail a:hover{color:var(--ore)}
+@media (min-width:1020px){.rail a:hover{border-left-color:var(--ore)}}
+.rail a:focus-visible{outline:2px solid var(--sonar);outline-offset:2px}
+
+/* main */
+main{padding-top:40px;min-width:0}
+section{padding-top:14px;margin-bottom:60px;scroll-margin-top:24px}
+h2{font-family:var(--display);font-weight:600;font-size:clamp(25px,3.6vw,34px);line-height:1.12;
+  letter-spacing:-.022em;margin:0 0 6px;text-wrap:balance}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ore);
+  margin:0 0 12px;display:block}
+h3{font-family:var(--display);font-weight:600;font-size:17.5px;letter-spacing:-.008em;margin:34px 0 4px}
+p{margin:0 0 15px;max-width:68ch}
+main ul{max-width:68ch;padding-left:20px;margin:0 0 15px}
+main li{margin-bottom:7px}
+strong{font-weight:600}
+code,.m{font-family:var(--mono);font-size:.88em;background:var(--surface-2);padding:1px 5px;border-radius:2px}
+a.inline{color:var(--sonar)}
+
+.lede{font-size:18px;line-height:1.55;max-width:60ch;color:var(--ink)}
+
+/* failure list — numbered because they compound in order of severity */
+.fails{list-style:none;padding:0;margin:20px 0 8px;max-width:68ch;
+  display:grid;gap:1px;background:var(--line-soft);border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
+.fails li{background:var(--ground);padding:16px 0 16px 46px;position:relative;margin:0}
+.fails li::before{content:attr(data-n);position:absolute;left:0;top:16px;font-family:var(--mono);font-size:12px;
+  color:var(--ore);letter-spacing:.05em}
+.fails b{font-family:var(--display);font-weight:600;font-size:16.5px;display:block;margin-bottom:2px}
+.fails li.key{background:var(--ore-wash);padding-left:46px;padding-right:16px}
+.fails li.key::before{left:14px}
+
+/* rules */
+.rules{display:grid;gap:1px;background:var(--line-soft);border:1px solid var(--line-soft);margin:22px 0 8px}
+.rule{background:var(--surface);padding:18px 20px}
+.rule .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  display:block;margin-bottom:7px}
+.rule h4{font-family:var(--display);font-weight:600;font-size:17px;margin:0 0 5px;letter-spacing:-.01em}
+.rule p{margin:0;font-size:14.5px;color:var(--muted);max-width:none}
+.rule p em{color:var(--ink);font-style:normal;font-weight:500}
+
+/* tables */
+.tw{overflow-x:auto;margin:22px 0 10px;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--surface);min-width:520px}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);
+  background:var(--surface-2);border-bottom:1px solid var(--line);white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.pick td{background:var(--sonar-wash)}
+tr.pick td:first-child{font-weight:600}
+.badge{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;
+  border-radius:2px;white-space:nowrap}
+.b-no{background:var(--ore-wash);color:var(--ore)}
+.b-yes{background:var(--sonar-wash);color:var(--sonar)}
+
+/* figure */
+figure{margin:26px 0 10px;padding:0}
+figure svg{display:block;width:100%;max-width:100%;height:auto;background:var(--surface);border:1px solid var(--line)}
+figcaption{font-size:13.5px;color:var(--muted);margin-top:10px;max-width:66ch}
+figcaption b{color:var(--ink);font-weight:500}
+
+/* loop strip */
+.loop{display:flex;flex-wrap:wrap;align-items:stretch;gap:1px;background:var(--line-soft);
+  border:1px solid var(--line-soft);margin:22px 0 6px}
+.loop .step{background:var(--surface);padding:13px 15px;flex:1 1 128px;min-width:128px}
+.loop .step span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);display:block;margin-bottom:4px}
+.loop .step b{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:-.01em}
+.loop .step.hot{background:var(--ore-wash)}
+.loopnote{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.02em;margin:0 0 22px}
+
+/* quote / narrative */
+.beat{border-left:2px solid var(--ore);padding:2px 0 2px 20px;margin:24px 0;max-width:64ch}
+.beat p{font-size:15.5px}
+.beat p:last-child{margin-bottom:0}
+
+/* tree */
+pre.tree{font-family:var(--mono);font-size:12.5px;line-height:1.62;background:var(--surface);
+  border:1px solid var(--line);padding:16px 18px;overflow-x:auto;margin:20px 0 10px}
+pre.tree i{font-style:normal;color:var(--muted)}
+pre.tree b{font-weight:500;color:var(--sonar)}
+
+/* math callout */
+.math{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--sonar);
+  padding:16px 20px;margin:20px 0;max-width:68ch}
+.math .eq{font-family:var(--mono);font-size:14px;margin:10px 0;color:var(--ink)}
+.math p{margin:0;font-size:14.5px;color:var(--muted);max-width:none}
+.math p+p{margin-top:9px}
+.math .out{color:var(--sonar);font-weight:500}
+
+/* risk severity */
+.sev{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;
+  letter-spacing:.09em;text-transform:uppercase}
+.sev::before{content:"";width:8px;height:8px;border-radius:1px;background:currentColor;flex:none}
+.sev.hi{color:var(--ore)}
+.sev.md{color:var(--core)}
+
+/* calls */
+.calls{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:1px;background:var(--line-soft);
+  border:1px solid var(--line-soft)}
+.calls li{background:var(--surface);padding:17px 20px;margin:0}
+.calls b{font-family:var(--display);font-weight:600;font-size:16px;display:block;margin-bottom:3px}
+.calls p{margin:0;font-size:14.5px;color:var(--muted);max-width:none}
+.calls .rec{color:var(--sonar);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+
+footer{border-top:1px solid var(--line);margin-top:20px;padding-top:20px;font-family:var(--mono);
+  font-size:11.5px;letter-spacing:.05em;color:var(--muted)}
+@media (min-width:1020px){footer{grid-column:2}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="stamp"><span>Design document</span><span>rev 0.1</span><span>Status: nothing built yet</span></div>
+  <h1>Chondrite</h1>
+  <p class="sub">Minesweeper as an excavation, rebuilt from the loop up so that three dimensions are the point rather than the gimmick.</p>
+  <p class="dek">A chondrite is a stony meteorite with mineral grains locked inside its matrix. You are digging them out. The rock is full of ordnance.</p>
+  <div class="chips">
+    <span class="chip"><b>Three.js</b> · vanilla, no framework</span>
+    <span class="chip"><b>TypeScript</b> + Vite + Vitest</span>
+    <span class="chip"><b>No backend</b> · static, seeded, shareable</span>
+    <span class="chip">Target <b>60&nbsp;fps</b> at 4,189 cells</span>
+  </div>
+</header>
+
+<aside class="rail">
+  <nav aria-label="Sections">
+    <ol>
+      <li><a href="#fail">The port that fails</a></li>
+      <li><a href="#rule">The rule change</a></li>
+      <li><a href="#design">Five more rules</a></li>
+      <li><a href="#loop">The loop</a></li>
+      <li><a href="#tuning">Tuning</a></li>
+      <li><a href="#solver">No forced guesses</a></li>
+      <li><a href="#arch">Architecture</a></li>
+      <li><a href="#build">Build order</a></li>
+      <li><a href="#risk">Risks</a></li>
+      <li><a href="#calls">Calls for you</a></li>
+    </ol>
+  </nav>
+</aside>
+
+<main>
+
+<section id="fail">
+  <span class="eyebrow">Diagnosis</span>
+  <h2>Why every 3D minesweeper you have played is bad</h2>
+  <p class="lede">They are all the same game: a cube of cells where a number counts mines in the surrounding 3×3×3 shell of 26. It reliably isn't fun, for four reasons that compound.</p>
+  <ol class="fails">
+    <li data-n="01"><b>Occlusion</b>Interior cells have no pixels. You cannot click what you cannot see, so these games bolt on layer sliders and become file browsers.</li>
+    <li data-n="02" class="key"><b>The constraint set is unrenderable</b>This is the real killer. In 2D a <span class="m">2</span> refers to eight cells that are all on screen, in a ring you recognise instantly. In 3D a <span class="m">7</span> refers to 26 cells, most buried behind other covered cells. Minesweeper deduction is <em>visual set overlap</em> — you watch two rings intersect and the answer falls out. Remove the ability to see the set and what is left is bookkeeping.</li>
+    <li data-n="03"><b>Clearing everything is a chore</b>Expert 2D is 480 cells. A 16³ volume is 4,096. Exhaustive clearing at that scale is work.</li>
+    <li data-n="04"><b>There are no edges</b>2D openings lean on walls and corners. A solid interior gives you nothing to push off.</li>
+  </ol>
+  <p style="margin-top:22px">Rendering tricks fix the first one. Nothing fixes the second except changing the rule.</p>
+</section>
+
+<section id="rule">
+  <span class="eyebrow">The one change everything hangs on</span>
+  <h2>Count six neighbours, not twenty-six</h2>
+  <p>A revealed cell counts mines among its <strong>six face-adjacent neighbours only</strong>. Numbers run 0–6. The constraint set is a six-armed cross along the axes — a shape you can name in full without rotating the camera, even when four of the arms are buried in rock.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Adjacency</th><th class="n">Max</th><th>Shape of the constraint set</th><th>Readable inside a solid?</th></tr></thead>
+      <tbody>
+        <tr><td>2D, 8-way</td><td class="n">8</td><td>a ring around the cell</td><td><span class="badge b-yes">Yes — the baseline</span></td></tr>
+        <tr><td>3D, 26-way</td><td class="n">26</td><td>a shell of 26</td><td><span class="badge b-no">No — most cells are buried</span></td></tr>
+        <tr><td>3D, 18-way</td><td class="n">18</td><td>a shell of 18</td><td><span class="badge b-no">No — same failure, one size down</span></td></tr>
+        <tr class="pick"><td>3D, 6-way</td><td class="n">6</td><td>a cross, one cell along each axis</td><td><span class="badge b-yes">Yes — all six are nameable</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>This is not a simplification — the pattern vocabulary changes</h3>
+  <p>Under 6-connectivity the overlap structure between two readings collapses to three cases, and that is what makes it learnable:</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Two revealed cells are…</th><th class="n">Shared cells</th><th>What it gives you</th></tr></thead>
+      <tbody>
+        <tr><td>face-adjacent (distance 1)</td><td class="n">0</td><td>but each sits <em>inside</em> the other's set — this is the cascade</td></tr>
+        <tr><td>two apart along an axis</td><td class="n">1</td><td>the cell between them, pinned by subtraction</td></tr>
+        <tr class="pick"><td>a diagonal step apart (√2)</td><td class="n">2</td><td>the new <span class="m">1-2-1</span>: the workhorse pattern</td></tr>
+        <tr><td>a body diagonal apart (√3)</td><td class="n">0</td><td>nothing — safe to ignore, which is itself useful</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The entire vocabulary is <span class="m">0 / 1 / 2</span>. Teachable in one tutorial beat, useful for the whole game. A 26-neighbourhood has no such vocabulary — it has arithmetic.</p>
+
+  <h3>And density gets a hard floor, for free</h3>
+  <div class="math">
+    <p>Flood fill spreads through zero-cells by face adjacency. Site percolation on the simple cubic lattice has a threshold near <span class="m">p<sub>c</sub> ≈ 0.3116</span>. Let the fraction of zero-cells pass it and zero-regions connect — one click unzips the whole asteroid.</p>
+    <p class="eq">(1 − p)<sup>6</sup> = 0.3116  →  <span class="out">p ≈ 0.177</span></p>
+    <p><b style="color:var(--ink)">Mine density must stay above ~18%</b> or cascades run away. Conveniently that is classic minesweeper territory — Expert is 20.6%. At <span class="m">p = 0.20</span> the numbers land at <span class="m">0: 26% · 1: 39% · 2: 25% · 3: 8%</span>, dominated by 1s and 2s exactly like the 2D game.</p>
+    <p>The threshold is for an infinite lattice and our hull is finite and irregular, so treat 18% as a floor to confirm by simulation, not as a proof.</p>
+  </div>
+</section>
+
+<section id="design">
+  <span class="eyebrow">The game</span>
+  <h2>Five more rules, and the thing they add up to</h2>
+
+  <div class="rules">
+    <div class="rule">
+      <span class="tag">Interaction</span>
+      <h4>Only exposed cells are diggable</h4>
+      <p>A cell can be dug if it touches open space — excavated void, or the outside. The diggable set is therefore always the visible skin of your own excavation. <em>Occlusion is solved by construction, not by UI.</em></p>
+    </div>
+    <div class="rule">
+      <span class="tag">Objective</span>
+      <h4>You extract cores, you do not clear the board</h4>
+      <p>Some cells are cores. You win when every core is out. Nothing else needs digging, so the volume becomes a <em>routing</em> problem — pick an approach vector, tunnel toward a target — which is a genuinely three-dimensional skill the flat game cannot ask for.</p>
+    </div>
+    <div class="rule">
+      <span class="tag">Tension</span>
+      <h4>Cores are visible from the start; the route is not</h4>
+      <p>Cores render as marked positions glowing inside the rock. <em>You always know where you are going and never know how to get there.</em> That is the whole game in one sentence, and it reads in the first three seconds of looking at it.</p>
+    </div>
+    <div class="rule">
+      <span class="tag">Failure</span>
+      <h4>A mine costs hull, not the run</h4>
+      <p>Three hull points. A detonation destroys the cell and its six face-neighbours, chaining through any mines caught in the blast. Losing ten minutes to one misclick is minesweeper's worst property; three lives plus spectacular chain detonations turn it into risk management. <em>A blast that takes a core loses that core for good</em> — so recklessness is punished exactly where it should be.</p>
+    </div>
+    <div class="rule">
+      <span class="tag">Second information source</span>
+      <h4>Sonar pings an axis</h4>
+      <p>Spend a charge to ping an axis-aligned line through a cell; it reports the total mines on that line inside the hull. Line sums layer a global, nonogram-style constraint over the local crosses — and reading them means sighting down an axis, which is a camera move, not a menu. <em>This is the move that could not exist in 2D.</em></p>
+    </div>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 860 440" role="img" aria-label="Cutaway of an asteroid mid-dig: an excavated void breaches the surface, its boundary is the frontier of diggable cells carrying numbers, a hidden mine sits just beyond it with its blast radius, a sonar line crosses the hull, and a core glows deeper in with no known route to it.">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <polygon points="0,1 10,5 0,9" fill="currentColor"/>
+        </marker>
+      </defs>
+
+      <!-- hull -->
+      <path d="M 402 50 C 492 52, 568 106, 580 188 C 592 268, 542 350, 458 382 C 372 412, 278 386, 238 316 C 198 246, 214 142, 284 92 C 318 68, 360 49, 402 50 Z"
+            fill="var(--surface-2)" stroke="currentColor" stroke-width="1.5" opacity="0.95"/>
+
+      <!-- sonar line, drawn under the void so the void reads as in front -->
+      <line x1="204" y1="312" x2="602" y2="312" stroke="var(--sonar)" stroke-width="2" stroke-dasharray="7 5"/>
+      <circle cx="204" cy="312" r="3.5" fill="var(--sonar)"/>
+      <circle cx="602" cy="312" r="3.5" fill="var(--sonar)"/>
+
+      <!-- excavated void -->
+      <path d="M 298 74 L 368 50 L 394 98 L 436 116 L 450 160 L 424 200 L 444 242 L 408 278 L 364 260 L 354 214 L 322 194 L 316 148 L 292 118 Z"
+            fill="var(--ground)" stroke="var(--sonar)" stroke-width="3"/>
+
+      <!-- readings on the frontier -->
+      <g font-family="IBM Plex Mono, monospace" font-size="13" font-weight="500" text-anchor="middle">
+        <rect x="389" y="89" width="22" height="22" rx="3" fill="var(--surface)" stroke="currentColor"/>
+        <text x="400" y="105" fill="currentColor">2</text>
+        <rect x="435" y="167" width="22" height="22" rx="3" fill="var(--surface)" stroke="currentColor"/>
+        <text x="446" y="183" fill="currentColor">1</text>
+        <rect x="375" y="263" width="22" height="22" rx="3" fill="var(--surface)" stroke="currentColor"/>
+        <text x="386" y="279" fill="currentColor">3</text>
+        <rect x="299" y="159" width="22" height="22" rx="3" fill="var(--surface)" stroke="currentColor"/>
+        <text x="310" y="175" fill="currentColor">1</text>
+      </g>
+
+      <!-- flag -->
+      <g stroke="var(--ore)" stroke-width="2">
+        <line x1="424" y1="126" x2="424" y2="144"/>
+        <polygon points="424,126 440,132 424,138" fill="var(--ore)" stroke="none"/>
+      </g>
+
+      <!-- hidden mine + blast -->
+      <circle cx="492" cy="214" r="46" fill="var(--ore-wash)" stroke="var(--ore)" stroke-width="1.5" stroke-dasharray="5 5"/>
+      <circle cx="492" cy="214" r="8" fill="var(--ore)"/>
+
+      <!-- core -->
+      <g transform="translate(386 340)">
+        <circle r="20" fill="var(--core-wash)"/>
+        <polygon points="0,-11 11,0 0,11 -11,0" fill="var(--core)"/>
+      </g>
+      <path d="M 386 320 C 372 296, 396 292, 392 276" stroke="var(--core)" stroke-width="2" stroke-dasharray="3 5" fill="none"/>
+
+      <!-- leaders + labels -->
+      <g stroke="currentColor" stroke-width="1" opacity=".55" marker-end="url(#ar)" fill="none">
+        <path d="M 184 88 L 326 68"/>
+        <path d="M 184 202 L 292 184"/>
+        <path d="M 612 118 L 578 156"/>
+        <path d="M 612 210 L 544 214"/>
+        <path d="M 612 302 L 600 312"/>
+        <path d="M 612 372 L 412 346"/>
+      </g>
+      <g font-family="IBM Plex Mono, monospace" font-size="13.5" fill="currentColor">
+        <text x="176" y="92" text-anchor="end">Entry</text>
+        <text x="176" y="198" text-anchor="end">Frontier<tspan x="176" dy="17" fill="var(--muted)">every diggable</tspan><tspan x="176" dy="16" fill="var(--muted)">cell is here</tspan></text>
+        <text x="620" y="114">Hull<tspan fill="var(--muted)"> · ~2,145 cells</tspan></text>
+        <text x="620" y="206">Mine, hidden<tspan x="620" dy="17" fill="var(--muted)">blast takes its six</tspan><tspan x="620" dy="16" fill="var(--muted)">faces, and chains</tspan></text>
+        <text x="620" y="298">Sonar ping<tspan x="620" dy="17" fill="var(--muted)">3 on this axis</tspan></text>
+        <text x="620" y="368">Core<tspan x="620" dy="17" fill="var(--muted)">visible from the start;</tspan><tspan x="620" dy="16" fill="var(--muted)">the route is not</tspan></text>
+      </g>
+    </svg>
+    <figcaption><b>The frontier is the whole interface.</b> Because a cell is diggable only when it touches open space, every clickable cell lies on the lit surface of your own excavation — so there is never a cell you want to click and cannot see. The dig reshapes that surface as it goes, and so does every detonation.</figcaption>
+  </figure>
+</section>
+
+<section id="loop">
+  <span class="eyebrow">Moment to moment</span>
+  <h2>The loop</h2>
+  <div class="loop">
+    <div class="step"><span>Camera</span><b>Sight down an axis</b></div>
+    <div class="step"><span>Spend</span><b>Ping the line</b></div>
+    <div class="step"><span>Read</span><b>Crosses + line sums</b></div>
+    <div class="step"><span>Commit</span><b>Dig toward a core</b></div>
+    <div class="step hot"><span>Payoff or cost</span><b>Extract, or detonate</b></div>
+  </div>
+  <p class="loopnote">↺ either outcome reshapes the frontier, and the loop restarts against a different rock</p>
+
+  <h3>The first ninety seconds, concretely</h3>
+  <div class="beat">
+    <p>A rock hangs in space. Four brass markers glow somewhere inside it. You click the surface; a pocket of cells dissolves and leaves a small crater ringed with numbers. You snap the camera down the Z axis, spend a ping, and learn there are three mines on the line running straight at the nearest core.</p>
+    <p>You flag two you are sure of, dig the third wrong, and a chain detonation blows a cavity four cells deep. That is bad — hull is 2 of 3 — and also useful, because the new frontier sits much closer to the core than anything you would have dug by hand.</p>
+  </div>
+  <p><strong>"My mistake opened a shortcut"</strong> is the feeling to build toward. It only exists because failure is destructive rather than terminal, and because the objective is a place rather than a completion percentage.</p>
+</section>
+
+<section id="tuning">
+  <span class="eyebrow">Numbers to start from</span>
+  <h2>Tuning</h2>
+  <p>Hulls are rough ellipsoids inscribed in the box, so cell count ≈ <span class="m">(π/6)·n³</span>. Every tier sits above the 18% percolation floor.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Tier</th><th class="n">Box</th><th class="n">Hull cells</th><th class="n">Density</th><th class="n">Mines</th><th class="n">Cores</th><th class="n">Pings</th><th class="n">Hull pts</th></tr></thead>
+      <tbody>
+        <tr><td>Survey <span style="color:var(--muted)">· tutorial</span></td><td class="n">8³</td><td class="n">268</td><td class="n">19%</td><td class="n">51</td><td class="n">2</td><td class="n">4</td><td class="n">3</td></tr>
+        <tr><td>Prospect</td><td class="n">12³</td><td class="n">905</td><td class="n">21%</td><td class="n">190</td><td class="n">3</td><td class="n">5</td><td class="n">3</td></tr>
+        <tr class="pick"><td>Deep Core</td><td class="n">16³</td><td class="n">2,145</td><td class="n">23%</td><td class="n">493</td><td class="n">4</td><td class="n">6</td><td class="n">3</td></tr>
+        <tr><td>Abyssal</td><td class="n">20³</td><td class="n">4,189</td><td class="n">25%</td><td class="n">1,047</td><td class="n">5</td><td class="n">6</td><td class="n">2</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Charges regenerate at one per 40 cells cleared, so a careful player who opens big pockets earns more information than a player who tunnels blindly. Deep Core is the tier to design against — the others are its edges.</p>
+</section>
+
+<section id="solver">
+  <span class="eyebrow">The quality bar</span>
+  <h2>No forced guesses, ever</h2>
+  <p class="lede">Minesweeper is only fun when deduction is always available. This is the highest-risk item in the project, and it gets built before a single triangle is drawn.</p>
+  <p><strong>Generator loop.</strong> Seeded RNG places mines and cores → the solver attempts a full solve using only rules a human has → on a forced guess, perturb and retry → after N failures, drop density and restart.</p>
+  <h3>Solver rules, in escalating cost order</h3>
+  <ul>
+    <li><strong>Trivial.</strong> Count equals unknown neighbours → all mines. Count satisfied → all remaining safe.</li>
+    <li><strong>Subset.</strong> For constraints <span class="m">A ⊆ B</span>, the difference <span class="m">B\A</span> holds <span class="m">n(B) − n(A)</span> mines; resolve when that equals <span class="m">|B\A|</span> or <span class="m">0</span>. Under 6-connectivity these come from exactly the axis-pair and diagonal-pair overlaps above.</li>
+    <li><strong>Line sums.</strong> Sonar readings enter the same pool as ordinary linear constraints over 0/1 variables — no special case.</li>
+    <li><strong>Global count.</strong> Total remaining mines constrains the whole frontier.</li>
+    <li><strong>Bounded enumeration.</strong> Split the frontier into connected components; under ~22 unknowns, enumerate every consistent assignment. A cell that is a mine in 0% or 100% of them is forced. This is the expensive backstop and the reason generation runs in a Worker.</li>
+  </ul>
+  <h3>Three guarantees on top</h3>
+  <ul>
+    <li>The first dig is always a zero-cell, so the opening move opens a real pocket rather than a single square.</li>
+    <li>At generation time, at least one core is reachable by a deduction-only route.</li>
+    <li>Sonar is <em>sufficient but not required</em> — a tier must be solvable without spending every charge, so charges stay a strategic resource rather than a tax.</li>
+  </ul>
+</section>
+
+<section id="arch">
+  <span class="eyebrow">How it is put together</span>
+  <h2>Architecture</h2>
+  <p>Vite + TypeScript + a pinned Three.js, vanilla — no framework. The HUD is a DOM overlay, not WebGL text. Vitest on the core. Static build, no backend, GitHub Pages.</p>
+  <pre class="tree">src/
+  <b>core/</b>      <i>pure TS, zero Three.js imports, fully unit-tested</i>
+    rng.ts        <i>seeded PRNG — a seed reproduces a run exactly</i>
+    grid.ts       <i>hull shape, indexing, 6-neighbour iteration</i>
+    generate.ts   <i>mine + core placement, retry loop</i>
+    solver.ts     <i>the five rules above</i>
+    reveal.ts     <i>flood fill, frontier maintenance</i>
+    blast.ts      <i>detonation and chain resolution</i>
+  <b>game/</b>      <i>state machine over core: hull, charges, scoring, phases</i>
+  <b>render/</b>    <i>scene, instances, digits, pick, fx</i>
+  <b>ui/</b>        <i>HUD, menus, seed share strings, tutorial</i>
+  main.ts</pre>
+  <p>Keeping <span class="m">core/</span> free of Three.js is the load-bearing decision: it is what lets the solver run in CI and generation run in a Worker.</p>
+
+  <h3>Performance budget</h3>
+  <ul>
+    <li><strong>Instancing.</strong> One <span class="m">InstancedMesh</span> per visual class — covered, revealed, flagged, core. Four draw calls for the whole rock instead of four thousand.</li>
+    <li><strong>Digits.</strong> A seven-glyph atlas (0–6) on instanced quads, one draw call, drawn only on <em>exposed faces of revealed cells</em> — a few hundred, not thousands. Billboarded and depth-faded.</li>
+    <li><strong>Picking.</strong> Do <em>not</em> raycast the InstancedMesh; that is O(instances). March a DDA voxel ray through the grid instead — O(grid dimension), 20–40 steps, exact, allocation-free.</li>
+    <li><strong>Generation</strong> runs in a Web Worker. The retry loop can take a while on Abyssal and must never block a frame.</li>
+  </ul>
+
+  <h3>Controls</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Action</th><th>Mouse &amp; keyboard</th><th>Touch</th></tr></thead>
+      <tbody>
+        <tr><td>Orbit / zoom</td><td>drag / wheel</td><td>one-finger drag / pinch</td></tr>
+        <tr><td>Dig</td><td>left click</td><td>tap</td></tr>
+        <tr><td>Flag</td><td>right click, or shift-click</td><td>long press</td></tr>
+        <tr><td>Sonar ping</td><td><span class="m">S</span>, then click a cell and drag along an axis</td><td>ping button, then drag</td></tr>
+        <tr class="pick"><td>Snap camera to axis</td><td><span class="m">1</span> <span class="m">2</span> <span class="m">3</span></td><td>axis buttons</td></tr>
+        <tr><td>Peel outer layers</td><td><span class="m">[</span> <span class="m">]</span></td><td>slider</td></tr>
+        <tr><td>X-ray revealed cells</td><td>hold <span class="m">Space</span></td><td>toggle</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Axis snap is highlighted because it is not a convenience — line sums are unreadable without it, so it ships with the sonar or the sonar does not ship.</p>
+
+  <h3>Accessibility</h3>
+  <p>A colourblind-safe digit palette <em>plus</em> distinct glyph weight, so colour is never the only channel. Flags and cores differ in silhouette, not just hue. Full keyboard play, with the cursor walking the exposed frontier cell by cell. <span class="m">prefers-reduced-motion</span> disables camera shake and shortens dissolves.</p>
+</section>
+
+<section id="build">
+  <span class="eyebrow">Sequenced — each step needs the one before it</span>
+  <h2>Build order</h2>
+  <div class="tw">
+    <table>
+      <thead><tr><th class="n">#</th><th>Milestone</th><th>Done when</th></tr></thead>
+      <tbody>
+        <tr><td class="n">M0</td><td>Scaffold</td><td>Vite + TS + Vitest, CI, Pages deploying a spinning cube</td></tr>
+        <tr><td class="n">M1</td><td>Core, headless</td><td>grid, RNG, generation, reveal, blast — no rendering at all, tests green</td></tr>
+        <tr class="pick"><td class="n">M2</td><td>Solver &amp; generator</td><td>seeded runs are provably guess-free and the retry loop terminates</td></tr>
+        <tr><td class="n">M3</td><td>Renderer</td><td>instanced voxels, DDA picking, orbit camera, hover highlight</td></tr>
+        <tr><td class="n">M4</td><td>Readability</td><td>digits, billboarding, x-ray, peel, axis snap</td></tr>
+        <tr><td class="n">M5</td><td>Game layer</td><td>cores, hull points, chain blasts, win/lose, sonar economy</td></tr>
+        <tr class="pick"><td class="n">M6</td><td>Playtest gate</td><td>you play it. Tune density, blast radius, charges — <em>before</em> any juice</td></tr>
+        <tr><td class="n">M7</td><td>Juice</td><td>shaders, dissolve, particles, shake, audio</td></tr>
+        <tr><td class="n">M8</td><td>Meta</td><td>daily seed, share strings, stats, tutorial, mobile pass</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The two highlighted rows are where this project can quietly fail. M2 is technical. M6 is honest — if the loop is not fun there, the fix is design, and it is still cheap to change.</p>
+</section>
+
+<section id="risk">
+  <span class="eyebrow">What I expect to go wrong</span>
+  <h2>Risks</h2>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Risk</th><th>Severity</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <tr><td>Solver cannot guarantee guess-free boards at Abyssal size</td><td><span class="sev hi">High</span></td><td>Build it at M2, before rendering. Fall back to per-component enumeration with a smaller cap and accept a lower tier ceiling</td></tr>
+        <tr><td>Interior state stays unreadable despite peel and x-ray</td><td><span class="sev hi">High</span></td><td>Prototype readability at M4 in a throwaway scene, before committing to a visual style</td></tr>
+        <tr><td>The loop simply is not fun</td><td><span class="sev hi">High</span></td><td>That is what M6 is for, and it lands early enough that changing the design is still cheap</td></tr>
+        <tr><td>Cascades percolate anyway on irregular hulls</td><td><span class="sev md">Medium</span></td><td>Simulate zero-cluster sizes across seeds at M1 and raise the density floor empirically</td></tr>
+        <tr><td>Digit rendering tanks framerate</td><td><span class="sev md">Medium</span></td><td>Atlas, instancing and exposed-face culling from the start. Never per-cell 3D text</td></tr>
+        <tr><td>Scope creep in juice</td><td><span class="sev md">Medium</span></td><td>M7 is timeboxed and sits behind the playtest gate</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="calls">
+  <span class="eyebrow">Decisions that are yours, not mine</span>
+  <h2>Three calls before I start</h2>
+  <ol class="calls">
+    <li><b>6-connectivity, or 18?</b><p><span class="rec">Plan commits to 6</span> — 18 gives richer local constraints at the cost of the readable cross silhouette, which is the entire argument of this document. Worth a one-day spike at M6 if 6 turns out to feel thin.</p></li>
+    <li><b>Real-time pressure, or pure puzzle?</b><p><span class="rec">Currently out of scope</span> — extracting a core could destabilise the rock and start a countdown, which is great for a climax and turns a puzzle into a pressure game. Prototype at M6 rather than commit now.</p></li>
+    <li><b>Art direction</b><p><span class="rec">Blocks nothing until M7</span> — clean instrument-and-survey, or chunky stylised voxel. It only sets the shader budget, so it can stay open while the game gets built.</p></li>
+  </ol>
+</section>
+
+<footer>Chondrite · design rev 0.1 · no code written yet · next step is M0 + M1</footer>
+
+</main>
+</div>
