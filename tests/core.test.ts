@@ -5,6 +5,7 @@ import { reveal, blast, isDiggable, recomputeCounts, toggleFlag, type Board } fr
 import { deduceAll, makeKnown, deduceOnce, SAFE, MINE } from '../src/core/solver';
 import { generate } from '../src/core/generate';
 import { pickCell } from '../src/render/pick';
+import { Game } from '../src/game/game';
 import { TIERS, tierById } from '../src/game/tiers';
 
 function box(n: number): Board {
@@ -419,5 +420,53 @@ describe('picking', () => {
       expect(isDiggable(board, i) || board.state[i] === FLAGGED).toBe(true);
     }
     expect(hits).toBeGreaterThan(100);
+  });
+});
+
+describe('a full run', () => {
+  // The smoke test proves a run can be lost. This proves one can be won:
+  // drive the game with nothing but provably safe digs and check it reaches
+  // every core without ever touching a mine.
+  const playByDeduction = (tierId: string, seed: string) => {
+    const g = new Game(tierId, seed);
+    let steps = 0;
+    while (g.phase === 'playing' && steps < 4000) {
+      steps++;
+      const cell = g.hint();
+      if (cell === null) break;
+      const out = g.dig(cell);
+      if (out.kind === 'detonated') throw new Error('a provably safe dig hit a mine');
+      if (out.kind === 'illegal') break;
+    }
+    return { game: g, steps };
+  };
+
+  it('can be won on every tier without a single guess', () => {
+    for (const [tier, seed] of [['survey', 'ida-11'], ['prospect', 'bennu-4242'], ['deepcore', 'vesta-2210']] as const) {
+      const { game } = playByDeduction(tier, seed);
+      expect(game.generatedClean).toBe(true);
+      expect(game.phase).toBe('won');
+      expect(game.coresExtracted).toBe(game.coresTotal);
+      expect(game.hull).toBe(game.tier.hull);
+      expect(game.revealedCount).toBeGreaterThan(20);
+    }
+  });
+
+  it('wins without needing to clear the whole rock', () => {
+    // The point of extracting cores rather than clearing: a win leaves most
+    // of the volume untouched, so the game is routing, not exhaustion.
+    const { game } = playByDeduction('deepcore', 'vesta-2210');
+    expect(game.phase).toBe('won');
+    expect(game.revealedCount).toBeLessThan(game.board.hullCells.length * 0.9);
+  });
+
+  it('ends the run when the hull is gone', () => {
+    const g = new Game('survey', 'ida-11');
+    for (let i = 0; i < g.board.hullCells.length && g.phase === 'playing'; i++) {
+      const cell = g.board.hullCells[i]!;
+      if (g.board.mine[cell] === 1 && isDiggable(g.board, cell)) g.dig(cell);
+    }
+    expect(g.phase).toBe('lost');
+    expect(g.hull).toBeLessThanOrEqual(0);
   });
 });

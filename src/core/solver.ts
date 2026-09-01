@@ -1,4 +1,4 @@
-import type { Board } from './board';
+import { type Board, isDiggable } from './board';
 import { COVERED, FLAGGED, REVEALED, DESTROYED, EXTRACTED } from './grid';
 
 export const UNKNOWN = 0;
@@ -268,9 +268,16 @@ export function deduceAll(b: Board, sonar: Sonar[]): Deduction {
   };
 }
 
-/** The next provably safe cell a stuck player could dig, preferring one that
- *  opens a pocket over one that reveals a single number. */
+/** The next provably safe cell a stuck player could dig.
+ *
+ *  A core that has become reachable comes first: cores are known safe from the
+ *  opening frame, so they are never *deduced* and would otherwise never be
+ *  offered — yet digging one is always the best available move. After that,
+ *  prefer a cell that opens a pocket over one that reveals a single number. */
 export function findHint(b: Board, sonar: Sonar[]): number | null {
+  for (const c of b.cores) {
+    if (b.state[c] === COVERED && isDiggable(b, c)) return c;
+  }
   const d = deduceAll(b, sonar);
   const cand = d.safe.filter((i) => b.state[i] === COVERED);
   if (!cand.length) return null;
