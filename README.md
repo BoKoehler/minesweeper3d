@@ -99,7 +99,15 @@ check, and a property test pins it.
 
 ## Deploying
 
-`.github/workflows/deploy.yml` tests, builds and publishes `dist/` to GitHub
-Pages on every push. It needs Pages enabled once, with **Settings → Pages →
-Source → GitHub Actions**. The bundle uses a relative base, so the same build
-works on a project site, a user site, or `npm run preview` locally.
+Two workflows: `ci.yml` runs the tests and the build on every branch, and
+`deploy.yml` publishes `dist/` to GitHub Pages from `main` and `claude/**`.
+
+**Pages needs turning on once, by hand:** *Settings → Pages → Source → GitHub
+Actions*. The workflow token is not allowed to create the Pages site itself, so
+until that switch is flipped the deploy workflow fails at `configure-pages`
+while CI stays green. After it is on, every push publishes to
+`https://<owner>.github.io/minesweeper3d/`.
+
+The bundle uses a relative base, so the same `dist/` works on a project site, a
+user site, or served from any sub-path — `scripts/subpath.mjs` checks exactly
+that against the production build.

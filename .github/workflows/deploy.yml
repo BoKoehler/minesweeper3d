@@ -1,5 +1,10 @@
 name: Deploy to GitHub Pages
 
+# Publishing needs Pages switched on once, by a repo admin:
+#   Settings -> Pages -> Source -> GitHub Actions
+# The workflow token cannot create the Pages site itself, so until that switch
+# is flipped this workflow fails at configure-pages while CI stays green.
+
 on:
   push:
     branches: [main, 'claude/**']
@@ -24,13 +29,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test
       - run: npm run build
-      # enablement turns Pages on for the repo on the first run, so the site
-      # does not need a manual visit to Settings before CI can publish.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
