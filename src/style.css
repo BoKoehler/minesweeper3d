@@ -296,6 +296,23 @@ input[type="text"] {
 .endrow .ghost { flex: 1; }
 
 .panel-busy { width: min(400px, 100%); text-align: center; }
+.panel-fail { border-left: 3px solid var(--ore); }
+.panel-fail .eyebrow { color: var(--ore); }
+.detail {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--muted);
+  background: rgba(12, 18, 22, 0.8);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 11px 13px;
+  margin: 0 0 18px;
+  max-height: 30vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 .spinner {
   width: 34px; height: 34px;
   margin: 0 auto 16px;

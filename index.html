@@ -7,13 +7,24 @@
 <meta name="description" content="Minesweeper as an excavation. Numbers count six faces, cores are visible and the route is not.">
 <meta name="theme-color" content="#0C1216">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      media="print" onload="this.media='all'">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230C1216'/><path d='M16 5 27 11v10L16 27 5 21V11z' fill='%23596b74'/><circle cx='16' cy='16' r='4' fill='%23DFB53F'/></svg>">
 </head>
 <body>
 <canvas id="stage"></canvas>
 
 <div id="labels" class="labels"></div>
+
+<div id="fail" class="overlay" hidden>
+  <div class="panel panel-fail">
+    <p class="eyebrow">Cannot start</p>
+    <h2 id="fail-title">Something did not load</h2>
+    <p class="lede" id="fail-body"></p>
+    <pre id="fail-detail" class="detail"></pre>
+    <button id="fail-reload" class="primary" type="button">Reload the page</button>
+  </div>
+</div>
 
 <header id="hud" class="hud hud-top" hidden>
   <div class="pod pod-id">
@@ -105,6 +116,44 @@
   </div>
 </div>
 
+<script>
+// Boot watchdog. Runs before the module and depends on nothing, so a page that
+// fails to start can still say why rather than sitting on a spinner or, worse,
+// arriving as unstyled markup with no clue what happened.
+(function () {
+  var errors = [];
+  function note(m) { if (m && errors.indexOf(m) === -1) errors.push(String(m)); }
+  window.addEventListener('error', function (e) {
+    if (e.target && e.target !== window && e.target.tagName)
+      note('failed to load ' + (e.target.src || e.target.href || e.target.tagName));
+    else note(e.message || (e.error && e.error.message));
+  }, true);
+  window.addEventListener('unhandledrejection', function (e) {
+    note((e.reason && e.reason.message) || e.reason);
+  });
+  window.__chondriteFail = function (title, body, detail) {
+    var f = document.getElementById('fail');
+    if (!f) return;
+    document.getElementById('fail-title').textContent = title;
+    document.getElementById('fail-body').textContent = body;
+    var d = [detail].concat(errors).filter(Boolean).join('\n');
+    document.getElementById('fail-detail').textContent = d;
+    document.getElementById('fail-detail').hidden = !d;
+    var busy = document.getElementById('busy'), menu = document.getElementById('menu');
+    if (busy) busy.hidden = true;
+    if (menu) menu.hidden = true;
+    f.hidden = false;
+  };
+  document.getElementById('fail-reload').addEventListener('click', function () { location.reload(); });
+  setTimeout(function () {
+    if (window.__chondriteBooted) return;
+    window.__chondriteFail(
+      'The game code never ran',
+      'The page arrived but its script did not start. That is usually a blocked or stale asset, an extension blocking the request, or a browser older than this build targets.',
+      'no boot signal after 8s');
+  }, 8000);
+})();
+</script>
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

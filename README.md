@@ -117,10 +117,23 @@ environment allows deployments from the default branch. If you later create
 environment's allowed branches, or deploy from `main`.
 
 The bundle uses a relative base, so the same `dist/` works from a project site,
-a user site, or any sub-path. Two scripts check the deployment rather than
-trusting it:
+a user site, or any sub-path.
+
+**The stylesheet is inlined into `index.html` at build time** (see the plugin in
+`vite.config.ts`). The whole UI lives in the HTML and all of its layout lives in
+the CSS, so a missing stylesheet does not degrade the page — it reduces it to
+unstyled text while the JavaScript keeps running. Shipping ~2.4 kB gzipped as a
+second request made every way a request can fail into a way the game arrives as
+naked markup. There is no CSS request left to fail.
+
+A page that cannot start says why. `index.html` carries a dependency-free boot
+watchdog, and startup checks for WebGL before generating a board, so the
+failure modes surface a readable panel instead of a spinner that never ends.
+
+Three scripts check the deployment rather than trusting it:
 
 ```bash
-node scripts/subpath.mjs   # loads the production build from a /minesweeper3d/ sub-path
-node scripts/live.mjs      # loads the deployed site and plays ten moves against it
+node scripts/subpath.mjs    # loads the production build from a /minesweeper3d/ sub-path
+node scripts/diagnose.mjs   # blocks CSS, JS and WebGL in turn and asserts each degradation
+node scripts/live.mjs       # loads the deployed site and plays ten moves against it
 ```

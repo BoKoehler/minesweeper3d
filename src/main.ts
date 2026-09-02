@@ -19,6 +19,30 @@ const toastEl = $('toast');
 
 type Mode = 'dig' | 'flag' | 'sonar';
 
+declare global {
+  interface Window {
+    __chondriteBooted?: boolean;
+    __chondriteFail?: (title: string, body: string, detail?: string) => void;
+  }
+}
+
+function fail(title: string, body: string, detail?: string): void {
+  window.__chondriteFail?.(title, body, detail);
+}
+
+/** Probe for a real context rather than sniffing the user agent. Returns the
+ *  reason it is unavailable, or null when WebGL works. */
+function webglUnavailable(): string | null {
+  try {
+    const probe = document.createElement('canvas');
+    const gl = probe.getContext('webgl2') ?? probe.getContext('webgl');
+    if (!gl) return 'The browser returned no WebGL context.';
+    return null;
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
+}
+
 let game: Game | null = null;
 let view: View | null = null;
 let mode: Mode = 'dig';
@@ -59,9 +83,25 @@ function start(tierId: string, seed: string): void {
   // Yield two frames so the spinner actually paints before generation blocks
   // the main thread searching for a board that reads without guessing.
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    game = new Game(tierId, seed);
-    if (!view) view = new View(canvas, game);
-    else view.setGame(game);
+    // Check before generating a board: without WebGL there is nothing to show
+    // it on, and the old code sat on the spinner forever instead of saying so.
+    const noGl = webglUnavailable();
+    if (noGl) {
+      fail('This browser cannot run WebGL',
+        'Chondrite draws the rock with WebGL, and this browser or machine will not give the page a 3D context. Hardware acceleration being switched off is the usual cause; some remote desktops and older mobile browsers also lack it.',
+        noGl);
+      return;
+    }
+    try {
+      game = new Game(tierId, seed);
+      if (!view) view = new View(canvas, game);
+      else view.setGame(game);
+    } catch (e) {
+      fail('The rock could not be built',
+        'Generation or the renderer threw while starting this run. Reloading usually clears it; if it does not, the seed is in the address of this page and worth reporting.',
+        e instanceof Error ? `${e.message}\n${e.stack ?? ''}` : String(e));
+      return;
+    }
     view.resize();
     mode = 'dig';
     syncTools();
@@ -312,5 +352,13 @@ function frame(now: number): void {
     });
   }
   requestAnimationFrame(frame);
+
+// Tells the boot watchdog in index.html that the module evaluated. Anything
+// that stops execution before this line leaves the watchdog to explain itself.
+window.__chondriteBooted = true;
 }
 requestAnimationFrame(frame);
+
+// Tells the boot watchdog in index.html that the module evaluated. Anything
+// that stops execution before this line leaves the watchdog to explain itself.
+window.__chondriteBooted = true;
