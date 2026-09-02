@@ -51,7 +51,7 @@ function icaoFrom(h: number): string {
 /** Cells are evaluated on demand and cached. A flight crosses only a handful,
  *  so this keeps the terrain query — which asks about airports for every single
  *  vertex it meshes — from re-deriving the same siting test thousands of times. */
-function memo<T>(): { get(key: string, make: () => T): T } {
+function memo<T>(): { get(key: string, make: () => T): T; clear(): void } {
   const map = new Map<string, T>();
   return {
     get(key, make) {
@@ -59,6 +59,7 @@ function memo<T>(): { get(key: string, make: () => T): T } {
       if (v === undefined) { v = make(); map.set(key, v); }
       return v;
     },
+    clear() { map.clear(); },
   };
 }
 
@@ -82,8 +83,17 @@ function siteQuality(x: number, z: number, seed: number, span: number, samples: 
   return clamp(1 - relief / (span * 0.22), 0, 1) * clamp(1 - (mean - 40) / 2600, 0, 1);
 }
 
+/** Drop every cached cell. Called when a new world is created so a fresh seed
+ *  really does give a fresh world. */
+export function clearPlaceCaches(): void {
+  airportCache.clear();
+  cityCache.clear();
+}
+
 export function airportInCell(cx: number, cz: number, seed: number): Airport | null {
-  return airportCache.get(`a${cx},${cz}`, () => {
+  // The seed is part of the key. Without it a second run with a different seed
+  // silently gets the first run's airfields back out of the cache.
+  return airportCache.get(`${seed}:${cx},${cz}`, () => {
     const h = hash2i(cx, cz, seed + 5501);
     const x = (cx + 0.18 + rand2i(cx, cz, seed + 21) * 0.64) * AIRPORT_CELL;
     const z = (cz + 0.18 + rand2i(cx, cz, seed + 22) * 0.64) * AIRPORT_CELL;
@@ -135,7 +145,7 @@ export function airportsNear(x: number, z: number, seed: number, rings = 1): Air
 }
 
 export function cityInCell(cx: number, cz: number, seed: number): City | null {
-  return cityCache.get(`c${cx},${cz}`, () => {
+  return cityCache.get(`${seed}:${cx},${cz}`, () => {
     const x = (cx + 0.15 + rand2i(cx, cz, seed + 31) * 0.7) * CITY_CELL;
     const z = (cz + 0.15 + rand2i(cx, cz, seed + 32) * 0.7) * CITY_CELL;
     const elev = baseElevation(x, z, seed);

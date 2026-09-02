@@ -5,7 +5,7 @@ import { advance, createAircraft, placeOnRunway, trimLevel, type AircraftState, 
 import { Autopilot } from './sim/autopilot';
 import { MS_TO_KT, M_TO_FT, KT_TO_MS } from './sim/atmosphere';
 import { elevation, groundNormal } from './world/ground';
-import { airportsNear, citiesNear, findSpawnAirport, runwayDesignators, type Airport } from './world/places';
+import { airportsNear, citiesNear, findSpawnAirport, runwayDesignators, clearPlaceCaches, type Airport } from './world/places';
 import { hashSeed } from './world/noise';
 import { WorldRenderer } from './render/world';
 import { Cockpit } from './render/cockpit';
@@ -126,6 +126,7 @@ function buildSim(): void {
   const seedText = ($<HTMLInputElement>('seed').value || 'sierra').trim();
   const seed = hashSeed(seedText);
   const cfg: AircraftConfig = aircraftById(selectedAircraft);
+  clearPlaceCaches();
 
   if (!renderer) {
     renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', logarithmicDepthBuffer: true });
@@ -301,7 +302,9 @@ function updateCamera(s: Sim): void {
     s.model.group.visible = false;
     s.cockpit.setVisible(true);
   } else if (s.view === 'chase') {
-    _tmp.set(0, 3.2, 18).applyQuaternion(s.aircraft.orientation).add(s.aircraft.position);
+    // Stand off by the aeroplane's own size, or the tail fills the frame.
+    const jet = cfg.engine.kind === 'jet';
+    _tmp.set(0, jet ? 6.5 : 3.6, jet ? 38 : 22).applyQuaternion(s.aircraft.orientation).add(s.aircraft.position);
     s.camera.position.copy(_tmp).sub(s.world.origin);
     s.camera.quaternion.copy(s.aircraft.orientation).multiply(_look);
     s.model.group.visible = true;

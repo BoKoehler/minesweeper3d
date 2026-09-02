@@ -61,5 +61,11 @@ const fps = await page.evaluate(() => new Promise((res) => {
 console.log('fps (software GL):', fps);
 await page.evaluate(() => { document.getElementById('msg').hidden = true; });
 await page.screenshot({ path: `scripts/shot-${mode}.png` });
+if (process.argv[5] === 'chase') {
+  await page.keyboard.press('KeyC');
+  await page.waitForTimeout(1400);
+  await page.evaluate(() => { document.getElementById('msg').hidden = true; });
+  await page.screenshot({ path: `scripts/shot-chase.png` });
+}
 console.log(errs.length ? 'ERRORS: ' + [...new Set(errs)].join(' | ') : 'no errors');
 await browser.close(); await server.close();
