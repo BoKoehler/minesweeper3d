@@ -99,15 +99,28 @@ check, and a property test pins it.
 
 ## Deploying
 
-Two workflows: `ci.yml` runs the tests and the build on every branch, and
-`deploy.yml` publishes `dist/` to GitHub Pages from `main` and `claude/**`.
+**Live: https://bokoehler.github.io/minesweeper3d/**
 
-**Pages needs turning on once, by hand:** *Settings → Pages → Source → GitHub
-Actions*. The workflow token is not allowed to create the Pages site itself, so
-until that switch is flipped the deploy workflow fails at `configure-pages`
-while CI stays green. After it is on, every push publishes to
-`https://<owner>.github.io/minesweeper3d/`.
+Two workflows. `ci.yml` runs the tests and the build on every branch;
+`deploy.yml` builds and publishes `dist/` to GitHub Pages on every push to
+`main` or `claude/**`, and can be run by hand from the Actions tab.
 
-The bundle uses a relative base, so the same `dist/` works on a project site, a
-user site, or served from any sub-path — `scripts/subpath.mjs` checks exactly
-that against the production build.
+Pages has to be switched on once by a repo admin — *Settings → Pages → Source →
+GitHub Actions*. The workflow token is not permitted to create the Pages site
+itself, so before that switch the deploy job fails at `configure-pages` while
+CI stays green. It is already on for this repo.
+
+One thing to know if you reorganise branches: this repo's default branch is
+currently `claude/3d-minesweeper-gameplay-e4o3fs`, and the `github-pages`
+environment allows deployments from the default branch. If you later create
+`main` and make it the default, add the branch you deploy from to that
+environment's allowed branches, or deploy from `main`.
+
+The bundle uses a relative base, so the same `dist/` works from a project site,
+a user site, or any sub-path. Two scripts check the deployment rather than
+trusting it:
+
+```bash
+node scripts/subpath.mjs   # loads the production build from a /minesweeper3d/ sub-path
+node scripts/live.mjs      # loads the deployed site and plays ten moves against it
+```

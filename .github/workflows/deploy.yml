@@ -1,9 +1,10 @@
 name: Deploy to GitHub Pages
 
-# Publishing needs Pages switched on once, by a repo admin:
-#   Settings -> Pages -> Source -> GitHub Actions
-# The workflow token cannot create the Pages site itself, so until that switch
-# is flipped this workflow fails at configure-pages while CI stays green.
+# Publishes to https://bokoehler.github.io/minesweeper3d/
+#
+# Pages must be switched on once by a repo admin (Settings -> Pages -> Source
+# -> GitHub Actions). The workflow token is not allowed to create the Pages
+# site itself, so before that switch this job fails at configure-pages.
 
 on:
   push:
