@@ -90,3 +90,13 @@ export function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
   return t * t * (3 - 2 * t);
 }
+
+/** Stable string -> 32-bit seed, so "sierra" always means the same world. */
+export function hashSeed(str: string): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
