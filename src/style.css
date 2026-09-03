@@ -82,6 +82,76 @@ html, body {
 .msg.bad { border-left-color: var(--red); }
 .msg.good { border-left-color: var(--green); }
 
+/* ---------- controls reference card ---------- */
+.panel.card { width: min(940px, 100%); padding: 24px 26px 20px; }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
+.card-head h2 { margin: 0; }
+.chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: rgba(10, 14, 18, 0.7);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 7px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.chip:hover { color: var(--ink); border-color: var(--muted); }
+
+.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 30px; }
+.card-grid section { min-width: 0; }
+.card-grid h3 {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin: 0 0 9px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.card-grid dl { display: grid; grid-template-columns: minmax(84px, auto) 1fr; gap: 7px 14px; margin: 0; align-items: baseline; }
+.card-grid dt { display: flex; gap: 3px; flex-wrap: wrap; font-size: 11px; color: var(--muted); }
+.card-grid dd { margin: 0; font-size: 12px; line-height: 1.45; color: var(--ink); }
+.card-grid dd b { font-weight: 500; }
+/* The gamepad equivalent, set apart so the two schemes read as one row. */
+.card-grid dd em {
+  display: block;
+  font-style: normal;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  color: var(--cyan);
+  margin-top: 1px;
+}
+.card-grid .note { font-size: 11.5px; line-height: 1.55; color: var(--muted); margin: 12px 0 0; }
+
+kbd {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink);
+  background: #1b2228;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+.card-foot {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.card-foot .k { display: block; margin-bottom: 4px; }
+.card-foot b { font-weight: 400; font-size: 11.5px; line-height: 1.6; color: var(--muted); }
+.card-foot b kbd { margin: 0 1px; }
+
 /* ---------- overlays ---------- */
 .overlay {
   position: fixed;
@@ -252,8 +322,8 @@ button:focus-visible, input:focus-visible, summary:focus-visible {
   outline-offset: 2px;
 }
 
-@media (max-width: 620px) {
-  .cols, .field.two { grid-template-columns: 1fr; }
+@media (max-width: 760px) {
+  .card-grid, .card-foot, .field.two { grid-template-columns: 1fr; }
   .hud { font-size: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.6s; } }

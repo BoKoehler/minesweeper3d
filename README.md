@@ -64,7 +64,28 @@ building, a far ring in coarser blocks that stand for a street each. Runway
 markings — threshold bars, touchdown zone, aiming point, centreline and the
 designator numbers — are painted onto a canvas, because that is what they are.
 
+## Looking right
+
+Filmic tone mapping, so the sun rolls off instead of clipping to flat white.
+An analytic sky with Mie forward scattering toward the sun, three cloud decks
+at different heights to fly between, and haze that thickens at dawn and dusk —
+light, sky, fog, sea and cloud all move together, because moving one alone
+looks like a filter. The sea is a rough-specular surface with a scrolling
+ripple normal, so the sun leaves a glitter path across it.
+
+Terrain colour is layered at three scales — a regional dry/damp field,
+patchwork at field size, and a tiling detail map for grain underfoot. One noise
+scale gives ground that is either uniformly flat or uniformly speckled, and
+both read as fake. Towns are painted with a street plan: from two thousand feet
+the grid is what says "town", long before a building resolves.
+
+Everything above is generated in-process. There is still not a single asset
+file in this repository.
+
 ## Controls
+
+**`F1` opens the full reference card**, in flight or from the menu, and holds
+the simulation while it is up. The short version:
 
 | | Keyboard | Gamepad |
 |---|---|---|
@@ -73,6 +94,7 @@ designator numbers — are painted onto a canvas, because that is what they are.
 | Throttle | `Shift` / `Ctrl` | `RT` |
 | Brakes | `B`, `P` parking | `LT` |
 | Gear, flaps | `G`, `F` / `V` | `A`, `X` / `Y` |
+| Trim | `,` `.` | D-pad |
 | Autopilot | `Tab` | `B` |
 | Look around | right-drag, numpad | Right stick |
 | View, centre head | `C`, `H` | `Back`, `R3` |

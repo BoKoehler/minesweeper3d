@@ -65,30 +65,70 @@ export function biomeAt(x: number, z: number, seed: number, h: number, slope: nu
 
 /** Colour used both by the terrain mesh and the map. Kept here so the mesher
  *  and any 2D view cannot drift apart. */
+/** Colour used both by the terrain mesh and the map. Kept here so the mesher
+ *  and any 2D view cannot drift apart.
+ *
+ *  Variation is layered at three scales on purpose: a regional dry/damp field,
+ *  patchwork at field size, and fine grain. One noise scale gives ground that
+ *  is either uniformly flat or uniformly speckled, and both read as fake. */
 export function surfaceColor(
   out: { r: number; g: number; b: number },
   x: number, z: number, seed: number, h: number, slope: number,
 ): void {
-  const jitter = fbm(x / 320, z / 320, 2, seed + 1301) * 0.06;
-  const m = moisture(x, z, seed);
-  let r: number, g: number, b: number;
-
-  if (h <= SEA_LEVEL) { r = 0.05; g = 0.13; b = 0.20; }
-  else if (h < 6) { r = 0.76; g = 0.70; b = 0.54; }
-  else {
-    const snowLine = 1750 + fbm(x / 24000, z / 24000, 2, seed + 411) * 430;
-    const rocky = clamp(smoothstep(0.30, 0.52, slope) + smoothstep(snowLine - 520, snowLine - 90, h), 0, 1);
-    const snow = smoothstep(snowLine - 60, snowLine + 190, h);
-    // Dry grass to damp pasture, then forest where moisture allows.
-    const dry = { r: 0.47, g: 0.45, b: 0.26 };
-    const wet = { r: 0.26, g: 0.39, b: 0.19 };
-    const forest = clamp((m - 0.44) * 2.3, 0, 1) * (1 - smoothstep(1400, 1750, h));
-    r = lerp(dry.r, wet.r, m); g = lerp(dry.g, wet.g, m); b = lerp(dry.b, wet.b, m);
-    r = lerp(r, 0.13, forest * 0.8); g = lerp(g, 0.26, forest * 0.8); b = lerp(b, 0.12, forest * 0.8);
-    r = lerp(r, 0.38, rocky); g = lerp(g, 0.36, rocky); b = lerp(b, 0.34, rocky);
-    r = lerp(r, 0.92, snow); g = lerp(g, 0.94, snow); b = lerp(b, 0.97, snow);
+  if (h <= SEA_LEVEL) {
+    // Shallows are lighter and greener than deep water.
+    const shallow = smoothstep(-45, 0, h);
+    out.r = lerp(0.020, 0.075, shallow);
+    out.g = lerp(0.075, 0.185, shallow);
+    out.b = lerp(0.125, 0.210, shallow);
+    return;
   }
-  out.r = clamp(r + jitter, 0, 1);
-  out.g = clamp(g + jitter, 0, 1);
-  out.b = clamp(b + jitter, 0, 1);
+
+  const m = moisture(x, z, seed);
+  const patch = fbm(x / 1400, z / 1400, 3, seed + 2203) * 0.5 + 0.5;   // fields
+  const grain = fbm(x / 190, z / 190, 2, seed + 1301);                 // texture
+  const region = fbm(x / 26000, z / 26000, 2, seed + 3307) * 0.5 + 0.5;
+
+  if (h < 7) {
+    const s = 1 - smoothstep(0, 7, h);
+    out.r = lerp(0.62, 0.80, s) + grain * 0.05;
+    out.g = lerp(0.57, 0.73, s) + grain * 0.05;
+    out.b = lerp(0.42, 0.55, s) + grain * 0.04;
+    return;
+  }
+
+  const snowLine = 1750 + fbm(x / 24000, z / 24000, 2, seed + 411) * 430;
+
+  // Ground cover: parched, pasture, or forest, decided by moisture with the
+  // patchwork breaking up the boundaries so nothing is a clean contour line.
+  const wet = clamp(m * 0.80 + patch * 0.30 + region * 0.18 - 0.06, 0, 1);
+  const dry = { r: 0.556, g: 0.520, b: 0.300 };
+  const grass = { r: 0.320, g: 0.462, b: 0.216 };
+  let r = lerp(dry.r, grass.r, wet);
+  let g = lerp(dry.g, grass.g, wet);
+  let b = lerp(dry.b, grass.b, wet);
+
+  const forest = clamp((m - 0.36) * 2.8, 0, 1)
+    * clamp((patch - 0.22) * 2.1, 0, 1)
+    * (1 - smoothstep(1250, 1700, h))
+    * (1 - smoothstep(0.34, 0.52, slope));
+  r = lerp(r, 0.152, forest); g = lerp(g, 0.286, forest); b = lerp(b, 0.136, forest);
+
+  // Rock takes over on steep ground and near the tops, with banding so cliffs
+  // are not one flat grey.
+  const band = fbm(x / 240, h / 90, 2, seed + 5501) * 0.5 + 0.5;
+  const rocky = clamp(smoothstep(0.28, 0.55, slope) + smoothstep(snowLine - 560, snowLine - 80, h), 0, 1);
+  const rock = { r: lerp(0.300, 0.455, band), g: lerp(0.286, 0.424, band), b: lerp(0.268, 0.395, band) };
+  r = lerp(r, rock.r, rocky); g = lerp(g, rock.g, rocky); b = lerp(b, rock.b, rocky);
+
+  // Snow settles on shallow ground first; steep faces stay bare.
+  const snow = smoothstep(snowLine - 90, snowLine + 210, h) * (1 - smoothstep(0.52, 0.82, slope));
+  r = lerp(r, 0.905, snow); g = lerp(g, 0.930, snow); b = lerp(b, 0.985, snow);
+
+  // Slope shading, so relief reads even in flat light.
+  const shade = 1 - clamp(slope, 0, 1) * 0.16;
+  const j = grain * 0.055;
+  out.r = clamp((r + j) * shade, 0, 1);
+  out.g = clamp((g + j) * shade, 0, 1);
+  out.b = clamp((b + j * 0.7) * shade, 0, 1);
 }

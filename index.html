@@ -56,37 +56,68 @@
 
     <button id="start" class="primary" type="button">Start engines</button>
 
-    <details class="help">
-      <summary>Controls</summary>
-      <div class="cols">
-        <div>
-          <h4>Keyboard</h4>
-          <dl>
-            <dt>W / S</dt><dd>Pitch (S pulls back)</dd>
-            <dt>A / D</dt><dd>Roll</dd>
-            <dt>Q / E</dt><dd>Rudder</dd>
-            <dt>Shift / Ctrl</dt><dd>Throttle</dd>
-            <dt>G · F · V</dt><dd>Gear · flaps down · flaps up</dd>
-            <dt>B · P</dt><dd>Wheel brakes · parking brake</dd>
-            <dt>Tab</dt><dd>Autopilot</dd>
-            <dt>C · H</dt><dd>Change view · centre head</dd>
-            <dt>Right-drag</dt><dd>Look around</dd>
-          </dl>
-        </div>
-        <div>
-          <h4>Gamepad</h4>
-          <dl>
-            <dt>Left stick</dt><dd>Roll and pitch</dd>
-            <dt>Right stick</dt><dd>Look around</dd>
-            <dt>RT / LT</dt><dd>Throttle · brakes</dd>
-            <dt>LB / RB</dt><dd>Rudder</dd>
-            <dt>A · X · Y</dt><dd>Gear · flaps down · flaps up</dd>
-            <dt>B</dt><dd>Autopilot</dd>
-            <dt>Start · Back</dt><dd>Pause · change view</dd>
-          </dl>
-        </div>
+    <button id="menu-controls" class="ghost" type="button">Controls reference · F1</button>
+  </div>
+</div>
+
+<div id="controls-card" class="overlay" hidden>
+  <div class="panel card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">Reference</p>
+        <h2>Controls</h2>
       </div>
-    </details>
+      <button id="card-close" class="chip" type="button">Close · F1</button>
+    </div>
+
+    <div class="card-grid">
+      <section>
+        <h3>Flying</h3>
+        <dl>
+          <dt><kbd>W</kbd><kbd>S</kbd></dt><dd>Pitch — <b>S</b> pulls the nose up<em>Left stick ↕</em></dd>
+          <dt><kbd>A</kbd><kbd>D</kbd></dt><dd>Roll left and right<em>Left stick ↔</em></dd>
+          <dt><kbd>Q</kbd><kbd>E</kbd></dt><dd>Rudder<em>LB / RB</em></dd>
+          <dt><kbd>Shift</kbd><kbd>Ctrl</kbd></dt><dd>Throttle up and down<em>RT holds a position</em></dd>
+          <dt><kbd>0</kbd><kbd>−</kbd><kbd>=</kbd></dt><dd>Idle · trim throttle down · up</dd>
+          <dt><kbd>,</kbd><kbd>.</kbd></dt><dd>Elevator trim, to hold an attitude hands-off<em>D-pad ↕</em></dd>
+        </dl>
+      </section>
+
+      <section>
+        <h3>Systems</h3>
+        <dl>
+          <dt><kbd>G</kbd></dt><dd>Landing gear<em>A</em></dd>
+          <dt><kbd>F</kbd><kbd>V</kbd></dt><dd>Flaps down a stage · up a stage<em>X / Y</em></dd>
+          <dt><kbd>B</kbd></dt><dd>Wheel brakes, held<em>LT</em></dd>
+          <dt><kbd>P</kbd></dt><dd>Parking brake — release it before you roll</dd>
+          <dt><kbd>Tab</kbd></dt><dd>Autopilot on and off<em>B</em></dd>
+        </dl>
+      </section>
+
+      <section>
+        <h3>Looking around</h3>
+        <dl>
+          <dt>Right-drag</dt><dd>Look around the cockpit<em>Right stick</em></dd>
+          <dt><kbd>4</kbd><kbd>6</kbd><kbd>8</kbd><kbd>2</kbd></dt><dd>Numpad head movement</dd>
+          <dt><kbd>H</kbd></dt><dd>Centre the view<em>R3</em></dd>
+          <dt><kbd>C</kbd></dt><dd>Cockpit → chase → tower<em>Back</em></dd>
+        </dl>
+      </section>
+
+      <section>
+        <h3>Simulation</h3>
+        <dl>
+          <dt><kbd>Esc</kbd></dt><dd>Pause, and back to the ramp<em>Start</em></dd>
+          <dt><kbd>F1</kbd></dt><dd>This card</dd>
+        </dl>
+        <p class="note">Plug a gamepad in at any time — it is picked up live and named in the top-right readout. Keyboard axes ramp like a stick rather than snapping to the stops, so short taps give small inputs.</p>
+      </section>
+    </div>
+
+    <div class="card-foot">
+      <div><span class="k">Getting off the ground</span><b>Release <kbd>P</kbd> · hold <kbd>Shift</kbd> to full power · at 55 kt hold <kbd>S</kbd> gently · <kbd>G</kbd> up</b></div>
+      <div><span class="k">If it starts shaking</span><b>That is the stall warning. Ease off <kbd>S</kbd> and add power.</b></div>
+    </div>
   </div>
 </div>
 
@@ -96,6 +127,7 @@
     <h2 id="pause-title">Holding</h2>
     <dl class="stats" id="pause-stats"></dl>
     <button id="resume" class="primary" type="button">Resume</button>
+    <button id="show-controls" class="ghost" type="button">Controls · F1</button>
     <button id="quit" class="ghost" type="button">Back to the ramp</button>
   </div>
 </div>

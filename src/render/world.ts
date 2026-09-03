@@ -1,7 +1,9 @@
 import {
-  BackSide, Color, DirectionalLight, FogExp2, Group, HemisphereLight, Mesh, MeshLambertMaterial,
-  PlaneGeometry, Scene, ShaderMaterial, SphereGeometry, Vector3, AmbientLight,
+  BackSide, Color, DirectionalLight, DoubleSide, FogExp2, Group, HemisphereLight, Mesh,
+  MeshBasicMaterial, MeshLambertMaterial, MeshStandardMaterial, PlaneGeometry, Scene, ShaderMaterial, SphereGeometry,
+  Vector3, AmbientLight, Vector2,
 } from 'three';
+import { cloudTexture, waterNormalTexture } from './textures';
 import { TerrainRenderer } from './terrain';
 import { CityRenderer } from './city';
 import { buildAirport } from './airport';
@@ -22,15 +24,30 @@ const SKY_FRAG = `
   uniform vec3 uZenith;
   uniform vec3 uHorizon;
   uniform vec3 uGround;
+  uniform vec3 uSunTint;
   varying vec3 vDir;
+
   void main() {
     vec3 d = normalize(vDir);
+    vec3 sun = normalize(uSun);
     float up = clamp(d.y, -1.0, 1.0);
-    vec3 col = mix(uHorizon, uZenith, pow(clamp(up, 0.0, 1.0), 0.55));
-    col = mix(col, uGround, clamp(-up * 3.0, 0.0, 1.0));
-    float sd = max(dot(d, normalize(uSun)), 0.0);
-    col += vec3(1.0, 0.94, 0.82) * pow(sd, 1400.0) * 8.0;
-    col += vec3(1.0, 0.78, 0.50) * pow(sd, 14.0) * 0.30;
+    float t = clamp(up, 0.0, 1.0);
+
+    // Rayleigh-ish vertical gradient. The low exponent keeps a tight, bright
+    // band right on the horizon, which is what reads as distance from the air.
+    vec3 col = mix(uHorizon, uZenith, pow(t, 0.42));
+
+    float cosT = max(dot(d, sun), 0.0);
+    // Mie forward scattering: the sky warms and brightens toward the sun, most
+    // strongly low down where the air is thickest.
+    col += uSunTint * pow(cosT, 7.0) * (1.0 - t * 0.75) * 0.55;
+    // Broad glow, then the disc itself with a soft limb.
+    col += uSunTint * pow(cosT, 260.0) * 1.7;
+    col += vec3(1.0, 0.97, 0.90) * smoothstep(0.99955, 0.99992, cosT) * 14.0;
+    // Opposite the sun the sky is deeper and cooler.
+    col *= 1.0 - 0.10 * pow(max(-dot(d, sun), 0.0), 2.0);
+
+    col = mix(col, uGround, clamp(-up * 4.5, 0.0, 1.0));
     gl_FragColor = vec4(col, 1.0);
   }`;
 
@@ -56,6 +73,10 @@ export class WorldRenderer {
   private airports = new Map<string, Group>();
   private sky: Mesh;
   readonly water: Mesh;
+  private clouds: Mesh[] = [];
+  private cloudGroup = new Group();
+  private waterNormal = waterNormalTexture();
+  private elapsed = 0;
   private sun = new DirectionalLight(0xfff2dc, 2.1);
   private hemi = new HemisphereLight(0xbcd6f0, 0x4a4436, 0.55);
   private sunDir = new Vector3(0.45, 0.62, 0.35).normalize();
@@ -66,7 +87,7 @@ export class WorldRenderer {
     this.cities = new CityRenderer(seed);
 
     const horizon = new Color('#b9cfe2');
-    this.fog = new FogExp2(horizon.getHex(), 0.0000068);
+    this.fog = new FogExp2(horizon.getHex(), 0.0000050);
     this.scene.fog = this.fog;
 
     this.sky = new Mesh(
@@ -79,6 +100,7 @@ export class WorldRenderer {
           uZenith: { value: new Color('#2f6bb4') },
           uHorizon: { value: horizon },
           uGround: { value: new Color('#7d8794') },
+          uSunTint: { value: new Color('#ffc98a') },
         },
       }),
     );
@@ -93,17 +115,65 @@ export class WorldRenderer {
     // computes depth per vertex and interpolates across the triangle, so a
     // 400 km quad with four corners interpolates depth wildly wrong and the sea
     // draws itself over mountains twenty kilometres nearer the camera.
+    // Standard rather than Lambert: the sun's specular path on the sea is most
+    // of what makes water read as water, and Lambert has no specular at all.
+    this.waterNormal.repeat.set(900, 900);
     this.water = new Mesh(
       new PlaneGeometry(400000, 400000, 140, 140),
-      new MeshLambertMaterial({ color: new Color('#123244') }),
+      new MeshStandardMaterial({
+        color: new Color('#0e2c3e'),
+        roughness: 0.14,
+        metalness: 0.0,
+        normalMap: this.waterNormal,
+        normalScale: new Vector2(0.35, 0.35),
+      }),
     );
     this.water.rotation.x = -Math.PI / 2;
     this.water.renderOrder = 0;
     this.scene.add(this.water);
 
+    this.buildClouds();
+
     this.sun.position.copy(this.sunDir).multiplyScalar(1000);
     this.scene.add(this.sun, this.sun.target, this.hemi, new AmbientLight(0x8fa4b8, 0.25));
-    this.scene.add(this.terrain.group, this.cities.group, this.airportGroup);
+    this.scene.add(this.terrain.group, this.cities.group, this.airportGroup, this.cloudGroup);
+  }
+
+  /** Three sheets at different heights and scales. One plane looks like a
+   *  painted ceiling the moment you climb toward it; three at different
+   *  altitudes give parallax, something to fly between, and a top surface to
+   *  come out above. */
+  private buildClouds(): void {
+    const layers: [number, number, number, number][] = [
+      // altitude, span, texture repeat, opacity. The lowest deck sits above a
+      // light single's usual cruise so you fly under it rather than inside it.
+      [2100, 280000, 6, 0.52],
+      [3400, 320000, 4, 0.60],
+      [6800, 400000, 2.4, 0.34],
+    ];
+    layers.forEach(([alt, span, rep, opacity], i) => {
+      // Low coverage leaves real holes; a solid sheet is an overcast lid.
+      const tex = cloudTexture(512, i === 2 ? 0.26 : 0.34, 4001 + i * 137);
+      tex.repeat.set(rep, rep);
+      // Unlit. A Lambert sheet seen from below is lit from behind and goes
+      // near-black, which reads as an overcast ceiling rather than cloud; a
+      // real underside is bright grey. The tint is set from the sun instead.
+      const mesh = new Mesh(
+        new PlaneGeometry(span, span, 1, 1),
+        new MeshBasicMaterial({
+          map: tex, transparent: true, opacity, depthWrite: false,
+          side: DoubleSide, fog: true,
+        }),
+      );
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.y = alt;
+      mesh.renderOrder = 2;
+      mesh.frustumCulled = false;
+      mesh.userData.alt = alt;
+      mesh.userData.drift = 0.0006 + i * 0.0004;
+      this.clouds.push(mesh);
+      this.cloudGroup.add(mesh);
+    });
   }
 
   /** Sun elevation in radians above the horizon, and compass bearing. */
@@ -152,7 +222,8 @@ export class WorldRenderer {
     return out.copy(world).sub(this.origin);
   }
 
-  update(aircraftWorld: Vector3, budgetMs = 6): void {
+  update(aircraftWorld: Vector3, budgetMs = 6, dt = 0): void {
+    this.elapsed += dt;
     this.rebase(aircraftWorld);
     this.terrain.update(aircraftWorld, budgetMs);
     this.cities.update(aircraftWorld);
@@ -162,6 +233,19 @@ export class WorldRenderer {
     this.water.position.set(scenePos.x, -this.origin.y, scenePos.z);
     this.sun.target.position.copy(scenePos);
     this.sun.position.copy(scenePos).addScaledVector(this.sunDir, 2000);
+
+    // Cloud sheets follow the aeroplane and drift, so they never run out and
+    // never sit still.
+    for (const c of this.clouds) {
+      c.position.set(scenePos.x, c.userData.alt as number, scenePos.z);
+      const tex = (c.material as MeshBasicMaterial).map!;
+      const drift = c.userData.drift as number;
+      tex.offset.set(
+        (aircraftWorld.x / 260000) * (tex.repeat.x / 12) + this.elapsed * drift,
+        (aircraftWorld.z / 260000) * (tex.repeat.y / 12) + this.elapsed * drift * 0.4,
+      );
+    }
+    this.waterNormal.offset.set(this.elapsed * 0.004, this.elapsed * 0.0026);
 
     // Airfields within sight, built once and kept until the origin moves.
     const want = new Set<string>();

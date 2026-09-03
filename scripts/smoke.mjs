@@ -30,10 +30,19 @@ const state = () => page.evaluate(() => {
   };
 });
 const hold = async (key, ms) => { await page.keyboard.down(key); await page.waitForTimeout(ms); await page.keyboard.up(key); };
-/** A tap plus enough time for the frame loop to consume the edge. This runner
- *  manages about 3 fps under software GL, so a press checked immediately has
- *  not been read yet. */
-const tap = async (key) => { await page.keyboard.press(key); await page.waitForTimeout(800); };
+/** A tap, then wait for the simulation clock to actually advance.
+ *
+ *  Fixed sleeps are the wrong tool here: this runner manages about one frame a
+ *  second under software GL, so any wall-clock guess is either flaky or slow.
+ *  Waiting on sim time makes the check independent of frame rate. */
+const tap = async (key) => {
+  const t0 = await page.evaluate(() => window.sierra?.time ?? 0);
+  await page.keyboard.press(key);
+  for (let i = 0; i < 120; i++) {
+    if ((await page.evaluate(() => window.sierra?.time ?? 0)) > t0 + 0.12) return;
+    await page.waitForTimeout(150);
+  }
+};
 /** Wait for a condition, so timing-sensitive checks are not fixed sleeps. */
 const until = async (fn, ms = 12000) => {
   const t0 = Date.now();
@@ -42,27 +51,52 @@ const until = async (fn, ms = 12000) => {
 };
 
 await page.goto('http://localhost:5320/', { waitUntil: 'networkidle' });
+
+// The controls card must be reachable before flying and while flying.
+await page.click('#menu-controls');
+await page.waitForTimeout(300);
+const cardRows = await page.evaluate(() => document.querySelectorAll('#controls-card dd').length);
+check('controls card opens from the menu and lists the bindings', !(await page.locator('#controls-card').getAttribute('hidden')) && cardRows >= 14, `${cardRows} bindings`);
+await page.click('#card-close');
+await page.waitForTimeout(200);
+check('controls card closes', (await page.locator('#controls-card').getAttribute('hidden')) !== null);
+
 await page.click('#start');
 await page.waitForSelector('#hud:not([hidden])', { timeout: 90000 });
 await page.waitForTimeout(1200);
 
+// Wait for the gear to settle rather than assuming a frame has run: this
+// runner manages about one frame a second under software GL.
+const settled = await until((x) => x.onGround, 20000);
 let s = await state();
-check('starts on the runway at a real airfield', s.onGround && s.ias < 1 && s.brake === true, `${s.spawn}, ${Math.round(s.alt)} m`);
+check('starts on the runway at a real airfield', settled && s.ias < 2 && s.brake === true,
+  `${s.spawn}, ${Math.round(s.alt)} m · settled=${settled} ias=${s.ias.toFixed(1)} brake=${s.brake}`);
 check('world is populated before the first frame', s.tiles > 100 && s.towns > 0, `${s.tiles} tiles, ${s.buildings} buildings, ${s.towns} towns, ${s.airports} fields`);
 
 // Controls move the surfaces, and ramp rather than snapping to the stops.
+// Sample the ramp across sim time, not wall time: one frame a second means a
+// 90 ms wall-clock sample can land before any frame has run at all.
 await page.keyboard.down('KeyS');
-await page.waitForTimeout(90);
+await until((x) => x.ctlPitch > 0.02, 12000);
 const early = (await state()).ctlPitch;
-await page.waitForTimeout(500);
+await page.waitForTimeout(1600);
 const later = (await state()).ctlPitch;
 await page.keyboard.up('KeyS');
 check('keyboard pitch ramps like a stick, not a switch', later > early && early < 0.9, `${early.toFixed(2)} -> ${later.toFixed(2)}`);
+check('stick returns to centre when released', await until((x) => Math.abs(x.ctlPitch) < 0.15, 12000));
+await page.keyboard.down('KeyD');
+check('right stick commands right aileron', await until((x) => x.ctlRoll > 0.1, 12000));
+await page.keyboard.up('KeyD');
+await until((x) => Math.abs(x.ctlRoll) < 0.15, 12000);
+
+// F1 opens the card in flight and holds the simulation while it is up.
+await page.keyboard.press('F1');
 await page.waitForTimeout(700);
-check('stick returns to centre when released', Math.abs((await state()).ctlPitch) < 0.15);
-await hold('KeyD', 350);
-check('right stick commands right aileron', (await state()).ctlRoll > 0.1);
+const cardOpen = (await page.locator('#controls-card').getAttribute('hidden')) === null;
+check('F1 opens the card in flight and pauses', cardOpen && (await state()).paused === true);
+await page.keyboard.press('F1');
 await page.waitForTimeout(700);
+check('closing the card resumes', (await state()).paused === false);
 
 // Systems.
 await tap('KeyP');
@@ -102,9 +136,12 @@ check('restarting with a new seed builds a different world', s.seed === 'checkfl
 
 await tap('Tab');
 check('autopilot engages in flight', (await state()).ap === true);
-await hold('KeyD', 600);
-await page.waitForTimeout(300);
-check('a stick input disconnects the autopilot', (await state()).ap === false);
+// Hold the stick until the autopilot lets go, rather than for a fixed time:
+// the disconnect needs the ramp to pass its threshold inside a frame.
+await page.keyboard.down('KeyD');
+const dropped = await until((x) => x.ap === false, 20000);
+await page.keyboard.up('KeyD');
+check('a stick input disconnects the autopilot', dropped);
 await page.waitForTimeout(1200);
 
 await tap('Escape');

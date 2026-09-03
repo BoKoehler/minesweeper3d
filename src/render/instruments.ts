@@ -13,31 +13,63 @@ import type { AutopilotState } from '../sim/autopilot';
 export const PANEL_W = 1792;
 export const PANEL_H = 300;
 
-const FACE = '#0f1214';
-const BEZEL = '#26292d';
 const INK = '#e6e9ec';
 const DIM = '#8b949b';
 
 const TAU = Math.PI * 2;
 
+/** Instrument surround: a lit metal ring, a shadowed lip, and a glass
+ *  highlight. Three gradients is the difference between a dial and a circle. */
 function bezel(g: CanvasRenderingContext2D, cx: number, cy: number, r: number, label: string): void {
   g.save();
+  // Machined ring, lit from the top left.
+  const ring = g.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+  ring.addColorStop(0, '#565c63');
+  ring.addColorStop(0.35, '#31363b');
+  ring.addColorStop(0.7, '#1d2126');
+  ring.addColorStop(1, '#3c4249');
   g.beginPath();
-  g.arc(cx, cy, r + 7, 0, TAU);
-  g.fillStyle = BEZEL;
+  g.arc(cx, cy, r + 8, 0, TAU);
+  g.fillStyle = ring;
   g.fill();
+
+  g.beginPath();
+  g.arc(cx, cy, r + 2, 0, TAU);
+  g.fillStyle = '#14171a';
+  g.fill();
+
+  // Dial face, slightly domed by an off-centre radial fill.
+  const face = g.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.1, cx, cy, r * 1.15);
+  face.addColorStop(0, '#1d2227');
+  face.addColorStop(0.6, '#111417');
+  face.addColorStop(1, '#080a0c');
   g.beginPath();
   g.arc(cx, cy, r, 0, TAU);
-  g.fillStyle = FACE;
+  g.fillStyle = face;
   g.fill();
-  g.strokeStyle = '#3a3f45';
-  g.lineWidth = 1.5;
-  g.stroke();
   g.restore();
+
   g.fillStyle = DIM;
   g.font = '600 11px ui-monospace, Menlo, monospace';
   g.textAlign = 'center';
-  g.fillText(label, cx, cy + r + 21);
+  g.fillText(label, cx, cy + r + 22);
+}
+
+/** Curved reflection across the glass. Drawn last, over the needles. */
+function glass(g: CanvasRenderingContext2D, cx: number, cy: number, r: number): void {
+  g.save();
+  g.beginPath();
+  g.arc(cx, cy, r, 0, TAU);
+  g.clip();
+  const sheen = g.createLinearGradient(cx - r, cy - r, cx + r * 0.4, cy + r * 0.5);
+  sheen.addColorStop(0, 'rgba(255,255,255,0.14)');
+  sheen.addColorStop(0.45, 'rgba(255,255,255,0.03)');
+  sheen.addColorStop(0.6, 'rgba(255,255,255,0)');
+  g.fillStyle = sheen;
+  g.beginPath();
+  g.ellipse(cx - r * 0.25, cy - r * 0.45, r * 1.05, r * 0.72, -0.5, 0, TAU);
+  g.fill();
+  g.restore();
 }
 
 function needle(g: CanvasRenderingContext2D, cx: number, cy: number, angle: number, len: number, width: number, color: string, tail = 0.22): void {
@@ -100,6 +132,7 @@ function airspeed(g: CanvasRenderingContext2D, cx: number, cy: number, r: number
   }
   needle(g, cx, cy, ang(Math.max(0, Math.min(top, kt))), r - 14, 5, INK);
   hub(g, cx, cy);
+  glass(g, cx, cy, r);
 }
 
 /** Attitude indicator. Sky and ground rotate with bank and slide with pitch,
@@ -179,6 +212,7 @@ function attitude(g: CanvasRenderingContext2D, cx: number, cy: number, r: number
   g.moveTo(cx, cy - 4);
   g.lineTo(cx, cy + 4);
   g.stroke();
+  glass(g, cx, cy, r);
 }
 
 /** Altimeter: a hundreds needle plus a digital thousands drum. Easier to read
@@ -226,6 +260,7 @@ function altimeter(g: CanvasRenderingContext2D, cx: number, cy: number, r: numbe
 
   needle(g, cx, cy, ((feet % 1000) / 1000) * TAU, r - 12, 5, INK);
   hub(g, cx, cy);
+  glass(g, cx, cy, r);
 }
 
 /** Vertical speed. Lags slightly in a real aeroplane; here it is honest. */
@@ -253,6 +288,7 @@ function vsi(g: CanvasRenderingContext2D, cx: number, cy: number, r: number, fpm
   g.fillText('x1000 FPM', cx, cy + r * 0.55);
   needle(g, cx, cy, ang(fpm), r - 12, 4.5, fpm > 0 ? '#8fe0a2' : '#e8a08f');
   hub(g, cx, cy);
+  glass(g, cx, cy, r);
 }
 
 /** Heading indicator: a rotating card under a fixed lubber line. */
@@ -310,6 +346,7 @@ function heading(g: CanvasRenderingContext2D, cx: number, cy: number, r: number,
   g.moveTo(cx, cy - 8);
   g.lineTo(cx, cy + 8);
   g.stroke();
+  glass(g, cx, cy, r);
 }
 
 /** Turn coordinator and slip ball: rate of turn on the little aeroplane,
@@ -364,6 +401,7 @@ function turnCoordinator(g: CanvasRenderingContext2D, cx: number, cy: number, r:
   g.strokeStyle = '#c8ced4';
   g.lineWidth = 1.2;
   g.stroke();
+  glass(g, cx, cy, r);
 }
 
 function tape(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, frac: number, label: string, value: string, color: string): void {
@@ -414,10 +452,33 @@ export interface PanelInput {
  *  is uploaded as a texture, which is one upload rather than a mesh per needle. */
 export function drawPanel(g: CanvasRenderingContext2D, input: PanelInput): void {
   const { telemetry: t, config: cfg, autopilot: ap } = input;
-  g.fillStyle = '#15181b';
+  // The panel itself: a vertical shade so the top catches the glareshield's
+  // light and the bottom falls into shadow, plus panel seams.
+  const board = g.createLinearGradient(0, 0, 0, PANEL_H);
+  board.addColorStop(0, '#272c31');
+  board.addColorStop(0.16, '#1c2126');
+  board.addColorStop(0.75, '#151a1e');
+  board.addColorStop(1, '#0e1215');
+  g.fillStyle = board;
   g.fillRect(0, 0, PANEL_W, PANEL_H);
-  g.fillStyle = '#1b1f23';
-  g.fillRect(0, 0, PANEL_W, 8);
+  g.fillStyle = 'rgba(255,255,255,0.05)';
+  g.fillRect(0, 0, PANEL_W, 3);
+  g.strokeStyle = 'rgba(0,0,0,0.45)';
+  g.lineWidth = 2;
+  for (const x of [1000, 1240]) {
+    g.beginPath();
+    g.moveTo(x, 10);
+    g.lineTo(x, PANEL_H - 10);
+    g.stroke();
+  }
+  // Fixing screws at the corners of each sub-panel.
+  g.fillStyle = 'rgba(140,150,160,0.30)';
+  for (const [sx, sy] of [[16, 14], [PANEL_W - 16, 14], [16, PANEL_H - 12], [PANEL_W - 16, PANEL_H - 12],
+                          [1000, 14], [1240, 14], [1000, PANEL_H - 12], [1240, PANEL_H - 12]] as const) {
+    g.beginPath();
+    g.arc(sx, sy, 3.2, 0, TAU);
+    g.fill();
+  }
 
   const r = 74;
   const gy = 100;

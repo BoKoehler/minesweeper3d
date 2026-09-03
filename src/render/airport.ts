@@ -1,7 +1,7 @@
 import {
   BufferAttribute, BufferGeometry, CanvasTexture, DoubleSide, Group, InstancedMesh, Mesh,
   MeshBasicMaterial, MeshLambertMaterial, Object3D, Points, PointsMaterial, Color,
-  BoxGeometry, PlaneGeometry, Vector3, AdditiveBlending,
+  BoxGeometry, PlaneGeometry, Vector3, AdditiveBlending, SRGBColorSpace,
 } from 'three';
 import { type Airport, runwayDesignators } from '../world/places';
 import { rand2i } from '../world/noise';
@@ -90,6 +90,7 @@ function runwayTexture(a: Airport): CanvasTexture {
   g.restore();
 
   const tex = new CanvasTexture(canvas);
+  tex.colorSpace = SRGBColorSpace;
   tex.anisotropy = 8;
   return tex;
 }

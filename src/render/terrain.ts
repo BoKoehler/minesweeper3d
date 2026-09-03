@@ -1,6 +1,7 @@
 import {
   BufferAttribute, BufferGeometry, Group, Mesh, MeshLambertMaterial, Vector3, FrontSide,
 } from 'three';
+import { groundDetailTexture } from './textures';
 import { elevation } from '../world/ground';
 import { surfaceColor, slopeAt } from '../world/terrain';
 
@@ -70,7 +71,11 @@ export class TerrainRenderer {
   constructor(private seed: number, rootSize = 4194304, maxDepth = 13) {
     this.maxDepth = maxDepth;
     this.root = { key: '0', depth: 0, x: -rootSize / 2, z: -rootSize / 2, size: rootSize, children: null, mesh: null };
-    this.material = new MeshLambertMaterial({ vertexColors: true, side: FrontSide });
+    // The detail map is multiplied by the vertex colour, so the palette still
+    // comes from the terrain field and the texture only adds grain.
+    const detail = groundDetailTexture();
+    detail.repeat.set(1, 1);
+    this.material = new MeshLambertMaterial({ vertexColors: true, side: FrontSide, map: detail });
     this.group.matrixAutoUpdate = false;
   }
 
@@ -174,7 +179,9 @@ export class TerrainRenderer {
     const pos = new Float32Array(total * 3);
     const nor = new Float32Array(total * 3);
     const col = new Float32Array(total * 3);
+    const uv = new Float32Array(total * 2);
     const heights = new Float32Array(VERTS);
+    const DETAIL_M = 42;                    // metres per texture tile
     const c = { r: 0, g: 0, b: 0 };
 
     for (let z = 0; z <= N; z++) {
@@ -186,6 +193,8 @@ export class TerrainRenderer {
         pos[i * 3] = x * step;
         pos[i * 3 + 1] = h;
         pos[i * 3 + 2] = z * step;
+        uv[i * 2] = wx / DETAIL_M;
+        uv[i * 2 + 1] = wz / DETAIL_M;
       }
     }
 
@@ -221,6 +230,7 @@ export class TerrainRenderer {
         pos[s * 3 + 2] = pos[src * 3 + 2];
         nor[s * 3] = nor[src * 3]; nor[s * 3 + 1] = nor[src * 3 + 1]; nor[s * 3 + 2] = nor[src * 3 + 2];
         col[s * 3] = col[src * 3]; col[s * 3 + 1] = col[src * 3 + 1]; col[s * 3 + 2] = col[src * 3 + 2];
+        uv[s * 2] = uv[src * 2]; uv[s * 2 + 1] = uv[src * 2 + 1];
       }
     };
     edge((i) => i);
@@ -232,6 +242,7 @@ export class TerrainRenderer {
     geo.setAttribute('position', new BufferAttribute(pos, 3));
     geo.setAttribute('normal', new BufferAttribute(nor, 3));
     geo.setAttribute('color', new BufferAttribute(col, 3));
+    geo.setAttribute('uv', new BufferAttribute(uv, 2));
     geo.setIndex(new BufferAttribute(INDICES, 1));
     geo.computeBoundingSphere();
 

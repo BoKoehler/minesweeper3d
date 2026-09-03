@@ -1,5 +1,5 @@
 import './style.css';
-import { PerspectiveCamera, Quaternion, Vector3, WebGLRenderer, Group } from 'three';
+import { ACESFilmicToneMapping, PerspectiveCamera, Quaternion, Vector3, WebGLRenderer, Group } from 'three';
 import { AIRCRAFT, aircraftById, type AircraftConfig } from './sim/aircraft';
 import { advance, createAircraft, placeOnRunway, trimLevel, type AircraftState, type GroundQuery } from './sim/dynamics';
 import { Autopilot } from './sim/autopilot';
@@ -19,6 +19,28 @@ declare global {
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 const canvas = $<HTMLCanvasElement>('stage');
 const menu = $('menu'), busy = $('busy'), paused = $('paused'), hud = $('hud'), msgEl = $('msg');
+const card = $('controls-card');
+
+/** The controls card is available from the menu, from the pause screen and on
+ *  F1 in flight. A reference you can only reach before taking off is a
+ *  reference you read once and then guess at. */
+function showCard(show: boolean): void {
+  card.hidden = !show;
+  if (show && sim && !sim.paused) { sim.paused = true; sim.pausedByCard = true; }
+  else if (!show && sim?.pausedByCard) { sim.paused = false; sim.pausedByCard = false; }
+}
+$('card-close').addEventListener('click', () => showCard(false));
+$('menu-controls').addEventListener('click', () => showCard(true));
+$('show-controls').addEventListener('click', () => showCard(true));
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'F1' || (e.code === 'Slash' && e.shiftKey)) {
+    e.preventDefault();
+    showCard(card.hidden === true);
+  } else if (e.code === 'Escape' && !card.hidden) {
+    e.preventDefault();
+    showCard(false);
+  }
+});
 
 const fail = (t: string, b: string, d?: string): void => window.__sierraFail?.(t, b, d);
 
@@ -46,6 +68,8 @@ interface Sim {
   time: number;
   altimeter: number;
   paused: boolean;
+  /** Paused because the reference card is open, so closing it resumes. */
+  pausedByCard: boolean;
   spawn: Airport;
 }
 
@@ -83,6 +107,7 @@ $('start').addEventListener('click', () => start());
 $('resume').addEventListener('click', () => { if (sim) { sim.paused = false; paused.hidden = true; } });
 $('quit').addEventListener('click', () => {
   paused.hidden = true;
+  card.hidden = true;
   hud.hidden = true;
   menu.hidden = false;
   if (sim) sim.paused = true;
@@ -99,6 +124,7 @@ function message(text: string, kind: 'info' | 'warn' | 'bad' | 'good' = 'info', 
 /* ---------------- start ---------------- */
 
 function start(): void {
+  card.hidden = true;
   const why = webglUnavailable();
   if (why) {
     fail('This browser cannot run WebGL',
@@ -132,6 +158,11 @@ function buildSim(): void {
     renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', logarithmicDepthBuffer: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
     renderer.autoClear = false;
+    // Filmic tone mapping. Without it the sun clips to flat white, bright sky
+    // washes out and everything sits in the same narrow band of grey — which
+    // is most of what "flat" looks like in a real-time scene.
+    renderer.toneMapping = ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
     input.attach(canvas);
   }
 
@@ -184,7 +215,7 @@ function buildSim(): void {
 
   sim = {
     seed, seedText, aircraft, autopilot: new Autopilot(), world, cockpit, model, ground,
-    camera, view: 'cockpit', time: 0, altimeter: 29.92, paused: false, spawn,
+    camera, view: 'cockpit', time: 0, altimeter: 29.92, paused: false, pausedByCard: false, spawn,
   };
   window.sierra = sim;
 
@@ -227,7 +258,12 @@ function applyInput(s: Sim): void {
   const a = input.axes;
   const e = input.edges;
 
-  if (e.pause) { s.paused = !s.paused; paused.hidden = !s.paused; if (s.paused) fillPauseStats(s); }
+  if (e.pause && card.hidden) {
+    s.paused = !s.paused;
+    s.pausedByCard = false;
+    paused.hidden = !s.paused;
+    if (s.paused) fillPauseStats(s);
+  }
   if (s.paused) return;
 
   // Any stick movement drops the autopilot, the way a real one disconnects.
@@ -377,7 +413,7 @@ function frame(now: number): void {
   s.time += dt;
   s.autopilot.update(s.aircraft, dt);
   advance(s.aircraft, dt, s.ground);
-  s.world.update(s.aircraft.position, 5);
+  s.world.update(s.aircraft.position, 5, dt);
   updateCamera(s);
 
   s.cockpit.update({

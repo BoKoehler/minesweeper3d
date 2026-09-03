@@ -1,7 +1,8 @@
 import { BoxGeometry, Color, Group, InstancedMesh, Matrix4, MeshLambertMaterial, Quaternion, Vector3, CircleGeometry, Mesh, DoubleSide } from 'three';
 import { citiesNear, type City } from '../world/places';
 import { elevation } from '../world/ground';
-import { rand2i } from '../world/noise';
+import { rand2i, hash2i } from '../world/noise';
+import { townTexture } from './textures';
 
 /** Buildings are generated for the ground near the camera, not for whole
  *  cities: a million-person metro covers 400 km2 and nobody can see most of it.
@@ -15,8 +16,9 @@ const MAX_NEAR = 14000;
 const MAX_FAR = 9000;
 
 const PALETTE = [
-  new Color('#b9b2a6'), new Color('#a8a094'), new Color('#8f8880'), new Color('#9d8b78'),
-  new Color('#7e7a76'), new Color('#c4bcae'), new Color('#6f7d86'), new Color('#8a6f60'),
+  new Color('#c3bcae'), new Color('#a9a094'), new Color('#8d857c'), new Color('#a68e78'),
+  new Color('#7a766f'), new Color('#cec6b6'), new Color('#6c7c88'), new Color('#96705d'),
+  new Color('#b4a892'), new Color('#7f6a5c'),
 ];
 const GLASS = new Color('#63788a');
 
@@ -39,6 +41,7 @@ export class CityRenderer {
   readonly stats: CityStats = { near: 0, far: 0, cities: 0 };
   private near: InstancedMesh;
   private far: InstancedMesh;
+  private roofs: InstancedMesh;
   private pads = new Map<string, Mesh>();
   private padGroup = new Group();
   private lastBuild = new Vector3(Infinity, 0, Infinity);
@@ -53,11 +56,12 @@ export class CityRenderer {
     const mat = new MeshLambertMaterial({});
     this.near = new InstancedMesh(geo, mat, MAX_NEAR);
     this.far = new InstancedMesh(geo, mat, MAX_FAR);
-    this.near.frustumCulled = false;
-    this.far.frustumCulled = false;
-    this.near.count = 0;
-    this.far.count = 0;
-    this.group.add(this.padGroup, this.far, this.near);
+    // A flat cap on each near building. Roofs are a different material from
+    // walls in every real town, and from the air the roof is most of what you
+    // see — walls that run to a hard edge against the ground read as boxes.
+    this.roofs = new InstancedMesh(geo, new MeshLambertMaterial({}), MAX_NEAR);
+    for (const m of [this.near, this.far, this.roofs]) { m.frustumCulled = false; m.count = 0; }
+    this.group.add(this.padGroup, this.far, this.near, this.roofs);
   }
 
   setOrigin(o: Vector3): void {
@@ -97,10 +101,11 @@ export class CityRenderer {
       }
       pos.needsUpdate = true;
       geo.computeVertexNormals();
-      const shade = 0.40 + Math.min(0.20, Math.log10(c.population) * 0.04);
+      // A painted street plan rather than a flat disc: from altitude the grid
+      // is what identifies a town, long before any building resolves.
       const mesh = new Mesh(geo, new MeshLambertMaterial({
-        color: new Color(shade * 1.04, shade * 0.99, shade * 0.90), side: DoubleSide,
-        transparent: true, opacity: 0.7, depthWrite: false,
+        map: townTexture(hash2i(Math.round(c.x), Math.round(c.z), this.seed), c.population),
+        side: DoubleSide, transparent: true, opacity: 0.92, depthWrite: false,
       }));
       mesh.position.set(c.x - this.origin.x, c.elev - this.origin.y, c.z - this.origin.z);
       mesh.renderOrder = 1;
@@ -162,7 +167,11 @@ export class CityRenderer {
           const core = coreHeight(host);
           // Tall in the middle, low at the edges, with a long tail so a few
           // buildings stand well above their neighbours.
-          const h = Math.max(4, core * (0.22 + 0.78 * Math.pow(1 - t, 1.7)) * (0.55 + 1.75 * Math.pow(hh, 2.6)));
+          // Long-tailed height: most buildings sit near the local average and
+          // a rare few stand well clear of their neighbours, which is what a
+          // skyline is. A uniform draw gives a plateau.
+          const landmark = hh > 0.985 && t < 0.45 ? 2.4 : 1;
+          const h = Math.max(4, core * (0.22 + 0.78 * Math.pow(1 - t, 1.7)) * (0.55 + 1.75 * Math.pow(hh, 2.6)) * landmark);
           const w = ring === 0
             ? 9 + rand2i(gx, gz, this.seed + 605) * (h > 40 ? 26 : 13)
             : spacing * (0.45 + rand2i(gx, gz, this.seed + 605) * 0.4);
@@ -183,6 +192,17 @@ export class CityRenderer {
             .multiplyScalar(0.82 + rand2i(gx, gz, this.seed + 609) * 0.3);
           mesh.setColorAt(count, col);
 
+          if (ring === 0) {
+            // Roof: a shallow slab a touch wider than the walls, darker, so
+            // the building has a top rather than just stopping.
+            pos.y = ground - 0.5 + h;
+            scale.set(w * 1.08, Math.max(0.6, h * 0.045), d2 * 1.08);
+            m.compose(pos, quat, scale);
+            this.roofs.setMatrixAt(count, m);
+            col.multiplyScalar(0.62);
+            this.roofs.setColorAt(count, col);
+          }
+
           count++;
           if (ring === 0) nNear = count; else nFar = count;
         }
@@ -190,11 +210,12 @@ export class CityRenderer {
     }
 
     this.near.count = nNear;
+    this.roofs.count = nNear;
     this.far.count = nFar;
-    this.near.instanceMatrix.needsUpdate = true;
-    this.far.instanceMatrix.needsUpdate = true;
-    if (this.near.instanceColor) this.near.instanceColor.needsUpdate = true;
-    if (this.far.instanceColor) this.far.instanceColor.needsUpdate = true;
+    for (const mesh of [this.near, this.far, this.roofs]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    }
     this.stats.near = nNear;
     this.stats.far = nFar;
   }
